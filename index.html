@@ -250,13 +250,26 @@
     .btn-icon:hover { background: var(--surface-hover); }
 
     .btn-danger {
-      width: 28px; height: 28px; padding: 0;
-      background: transparent; color: var(--muted); border-radius: 8px;
-      opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s;
+      font-size: 0.68rem;
+      font-weight: 700;
+      width: auto;
+      height: auto;
+      padding: 4px 8px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+      flex-shrink: 0;
     }
 
     tr:hover .btn-danger { opacity: 1; }
-    .btn-danger:hover { background: rgba(251, 113, 133, 0.14); color: var(--danger); }
+    .btn-danger:hover {
+      background: rgba(251, 113, 133, 0.12);
+      border-color: rgba(251, 113, 133, 0.25);
+      color: var(--danger);
+    }
 
     .icon { width: 16px; height: 16px; flex-shrink: 0; }
 
@@ -538,8 +551,8 @@
     .legend-item {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      padding: 7px 12px;
+      gap: 8px;
+      padding: 8px 13px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 999px;
@@ -547,17 +560,30 @@
       font-weight: 700;
       cursor: pointer;
       user-select: none;
-      transition: transform 0.15s, opacity 0.2s, border-color 0.15s;
+      transition: transform 0.15s, opacity 0.2s, border-color 0.15s, box-shadow 0.15s;
     }
 
-    .legend-item:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+    .legend-item:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
     .legend-item.hidden { opacity: 0.35; text-decoration: line-through; }
-    .legend-item.active { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
+    .legend-item.active {
+      border-color: var(--legend-color, var(--border-strong));
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--legend-color, var(--accent)) 45%, transparent),
+        0 4px 16px color-mix(in srgb, var(--legend-color, var(--accent)) 22%, transparent);
+    }
 
     .legend-dot {
-      width: 9px; height: 9px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
-      box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 25%, transparent);
+      flex-shrink: 0;
+      filter: saturate(1.45) brightness(1.2);
+      box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--legend-color, currentColor) 35%, transparent),
+        0 0 10px color-mix(in srgb, var(--legend-color, currentColor) 55%, transparent);
     }
 
     /* Scoreboard */
@@ -1398,7 +1424,7 @@
                 </div>
                 <input type="text" class="name-input" value="${escapeHtml(p.name)}"
                   data-id="${p.id}" data-field="name" maxlength="24" />
-                <button class="btn-danger" data-remove="${p.id}" title="Remove">✕</button>
+                <button class="btn-danger" data-remove="${p.id}" title="Remove participant">Remove</button>
               </div>
             </td>
             ${cells}
@@ -1422,8 +1448,12 @@
         input.addEventListener("input", onPointsChange);
         input.addEventListener("blur", onPointsBlur);
       });
-      container.querySelectorAll(".name-input, .color-input").forEach((input) => {
-        input.addEventListener("input", onMetaChange);
+      container.querySelectorAll(".name-input").forEach((input) => {
+        input.addEventListener("input", onNameInput);
+        input.addEventListener("blur", onNameBlur);
+      });
+      container.querySelectorAll(".color-input").forEach((input) => {
+        input.addEventListener("input", onColorChange);
       });
       container.querySelectorAll("[data-remove]").forEach((btn) => {
         btn.addEventListener("click", () => removeParticipant(btn.dataset.remove));
@@ -1455,18 +1485,60 @@
       e.target.value = p?.points[+e.target.dataset.day] ?? 0;
     }
 
-    function onMetaChange(e) {
-      const participants = getWeekData().participants;
-      const id = e.target.dataset.id;
-      const field = e.target.dataset.field;
-      const p = participants.find((x) => x.id === id);
+    function updateParticipantVisuals(id) {
+      const p = getWeekData().participants.find((x) => x.id === id);
       if (!p) return;
-      p[field] = field === "name" ? e.target.value.trim() || "Unnamed" : e.target.value;
-      saveStore();
-      if (field === "color" || field === "name") renderTable();
-      updateChart();
+
+      const row = document.querySelector(`.name-input[data-id="${id}"]`)?.closest("tr");
+      if (row) {
+        const avatar = row.querySelector(".avatar");
+        if (avatar) {
+          avatar.textContent = initials(p.name);
+          avatar.style.background = p.color;
+        }
+      }
+
+      const idx = getWeekData().participants.findIndex((x) => x.id === id);
+      if (chart && idx >= 0) {
+        chart.data.datasets[idx].label = p.name;
+        chart.data.datasets[idx].borderColor = p.color;
+        chart.data.datasets[idx].pointBackgroundColor = p.color;
+        chart.data.datasets[idx].backgroundColor = p.color + "30";
+        updateChartGradients();
+        chart.update("none");
+      }
+
       renderLegend();
       renderStats();
+    }
+
+    let nameSaveTimer = null;
+
+    function onNameInput(e) {
+      const p = getWeekData().participants.find((x) => x.id === e.target.dataset.id);
+      if (!p) return;
+      p.name = e.target.value;
+      updateParticipantVisuals(p.id);
+      clearTimeout(nameSaveTimer);
+      nameSaveTimer = setTimeout(() => saveStore(), 500);
+    }
+
+    function onNameBlur(e) {
+      const p = getWeekData().participants.find((x) => x.id === e.target.dataset.id);
+      if (!p) return;
+      const trimmed = e.target.value.trim() || "Unnamed";
+      p.name = trimmed;
+      e.target.value = trimmed;
+      saveStore();
+      updateParticipantVisuals(p.id);
+    }
+
+    function onColorChange(e) {
+      const p = getWeekData().participants.find((x) => x.id === e.target.dataset.id);
+      if (!p) return;
+      p.color = e.target.value;
+      saveStore();
+      updateParticipantVisuals(p.id);
     }
 
     function updateTotalsInTable() {
@@ -1488,7 +1560,7 @@
       const el = document.getElementById("legend");
       el.innerHTML = participants.map((p) => `
         <span class="legend-item ${hiddenIds.has(p.id) ? "hidden" : ""} ${focusedId === p.id ? "active" : ""}"
-          data-toggle="${p.id}" style="color:${p.color}">
+          data-toggle="${p.id}" style="--legend-color:${p.color}">
           <span class="legend-dot" style="background:${p.color}"></span>
           ${escapeHtml(p.name)}
         </span>`).join("");
@@ -1642,8 +1714,9 @@
       const participants = getWeekData().participants;
       const usedColors = new Set(participants.map((p) => p.color));
       const color = DEFAULT_COLORS.find((c) => !usedColors.has(c)) || DEFAULT_COLORS[participants.length % DEFAULT_COLORS.length];
+      const newId = crypto.randomUUID();
       participants.push({
-        id: crypto.randomUUID(),
+        id: newId,
         name: `Participant ${participants.length + 1}`,
         color,
         points: [0, 0, 0, 0, 0],
@@ -1651,14 +1724,24 @@
       saveStore();
       renderAll();
       showToast("Participant added");
+      requestAnimationFrame(() => {
+        const input = document.querySelector(`.name-input[data-id="${newId}"]`);
+        if (!input) return;
+        input.focus();
+        input.select();
+      });
     }
 
     function removeParticipant(id) {
-      if (getWeekData().participants.length <= 1) {
+      const participants = getWeekData().participants;
+      if (participants.length <= 1) {
         showToast("Need at least one participant");
         return;
       }
-      getWeekData().participants = getWeekData().participants.filter((p) => p.id !== id);
+      const person = participants.find((p) => p.id === id);
+      if (!person) return;
+      if (!confirm(`Remove ${person.name} from this week?\n\nThis cannot be undone.`)) return;
+      getWeekData().participants = participants.filter((p) => p.id !== id);
       hiddenIds.delete(id);
       if (focusedId === id) focusedId = null;
       saveStore();
