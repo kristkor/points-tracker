@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Points Tracker</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -180,7 +182,17 @@
       letter-spacing: -0.04em;
     }
 
-    .brand p { color: var(--muted); font-size: 0.86rem; margin-top: 1px; }
+    .brand p { color: var(--muted); font-size: 0.86rem; }
+
+    .brand-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 3px;
+    }
+
+    .brand-meta p { margin-top: 0; }
 
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
@@ -279,20 +291,17 @@
     }
 
     .cloud-badge {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      z-index: 200;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 14px;
-      background: var(--surface-solid);
+      padding: 4px 10px;
+      background: var(--surface);
       border: 1px solid var(--border-strong);
       border-radius: 999px;
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 700;
-      box-shadow: var(--shadow-sm);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .cloud-badge::before {
@@ -306,11 +315,6 @@
     .cloud-badge.saving { color: var(--warning); --cloud-color: var(--warning); }
     .cloud-badge.offline { color: var(--muted); --cloud-color: var(--muted); }
     .cloud-badge.error { color: var(--danger); --cloud-color: var(--danger); }
-
-    @media (max-width: 640px) {
-      .cloud-badge { top: auto; bottom: 72px; left: 50%; transform: translateX(-50%); }
-      .save-badge { top: 16px; right: 16px; }
-    }
 
     /* Week nav */
     .week-shell {
@@ -773,7 +777,10 @@
         </div>
         <div>
           <h1>Points Tracker</h1>
-          <p>Team scoreboard · Mon – Fri</p>
+          <div class="brand-meta">
+            <p>Team scoreboard · Mon – Fri</p>
+            <div class="cloud-badge offline" id="cloudBadge">Local only · free setup in config.js</div>
+          </div>
         </div>
       </div>
       <div class="toolbar">
@@ -857,7 +864,6 @@
     <footer>Auto-saved to cloud when configured · <code>←</code> <code>→</code> change weeks</footer>
   </div>
 
-  <div class="cloud-badge offline" id="cloudBadge">Local only · free setup in config.js</div>
   <div class="toast" id="toast"></div>
 
   <script src="config.js" onerror="window.APP_CONFIG=null"></script>
@@ -867,7 +873,14 @@
     const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
     const STORAGE_KEY = "points-tracker-v2";
     const LEGACY_KEY = "points-tracker-v1";
-    const DEFAULT_COLORS = ["#9333ea", "#ef4444", "#14b8a6", "#f97316", "#64748b", "#eab308", "#ec4899", "#3b82f6"];
+    const DEFAULT_COLORS = ["#8B5CF6", "#F472B6", "#22D3EE", "#FB923C", "#6366F1", "#34D399", "#FBBF24", "#A78BFA"];
+    const TEAM_COLORS = {
+      Kristina: "#8B5CF6",
+      Arsen: "#F472B6",
+      Andrew: "#22D3EE",
+      Tim: "#FB923C",
+      Ilya: "#6366F1",
+    };
     const STAT_ICONS = {
       people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
       max: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
@@ -876,11 +889,11 @@
     };
 
     const defaultParticipants = () => [
-      { id: crypto.randomUUID(), name: "Kristina", color: "#9333ea", points: [0, 0, 30, 60, 0] },
-      { id: crypto.randomUUID(), name: "Arsen", color: "#ef4444", points: [0, 40, 60, 70, 0] },
-      { id: crypto.randomUUID(), name: "Andrew", color: "#14b8a6", points: [0, 65, 65, 65, 0] },
-      { id: crypto.randomUUID(), name: "Tim", color: "#f97316", points: [20, 20, 20, 20, 0] },
-      { id: crypto.randomUUID(), name: "Ilya", color: "#64748b", points: [15, 40, 40, 90, 0] },
+      { id: crypto.randomUUID(), name: "Kristina", color: TEAM_COLORS.Kristina, points: [0, 0, 30, 60, 0] },
+      { id: crypto.randomUUID(), name: "Arsen", color: TEAM_COLORS.Arsen, points: [0, 40, 60, 70, 0] },
+      { id: crypto.randomUUID(), name: "Andrew", color: TEAM_COLORS.Andrew, points: [0, 65, 65, 65, 0] },
+      { id: crypto.randomUUID(), name: "Tim", color: TEAM_COLORS.Tim, points: [20, 20, 20, 20, 0] },
+      { id: crypto.randomUUID(), name: "Ilya", color: TEAM_COLORS.Ilya, points: [15, 40, 40, 90, 0] },
     ];
 
     let store = null;
@@ -1112,6 +1125,20 @@
       if (localStorage.getItem(LEGACY_KEY)) localStorage.removeItem(LEGACY_KEY);
       if (showIndicator) flashSave();
       if (showIndicator) scheduleCloudSave();
+    }
+
+    function applyTeamColors() {
+      let changed = false;
+      for (const week of Object.values(store.weeks || {})) {
+        for (const p of week.participants || []) {
+          const teamColor = TEAM_COLORS[p.name];
+          if (teamColor && p.color !== teamColor) {
+            p.color = teamColor;
+            changed = true;
+          }
+        }
+      }
+      return changed;
     }
 
     function mergeStores(local, remote) {
@@ -1670,9 +1697,11 @@
       store = loadLocalStore();
       const remote = await loadRemoteData();
       if (remote) store = mergeStores(store, remote);
-      saveStore(false);
 
       await initCloud();
+
+      applyTeamColors();
+      saveStore(false);
 
       applyTheme(store.theme || "dark");
       renderAll();
