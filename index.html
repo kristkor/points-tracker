@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Points Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #07080d;
+      --surface: rgba(16, 19, 28, 0.78);
+      --surface-solid: #10131c;
+      --surface-2: rgba(24, 29, 42, 0.95);
+      --surface-hover: #222838;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-strong: rgba(255, 255, 255, 0.13);
+      --text: #f8fafc;
+      --muted: #8b93a7;
+      --accent: #8b7dff;
+      --accent-2: #2dd4bf;
+      --accent-hover: #a599ff;
+      --danger: #fb7185;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+      --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.28);
+      --chart-grid: rgba(255, 255, 255, 0.05);
+      --chart-point-border: #fff;
+      --tooltip-bg: #151925;
+      --tooltip-text: #f8fafc;
+      --tooltip-border: rgba(255, 255, 255, 0.1);
+      --focus-ring: rgba(139, 125, 255, 0.32);
+      --today-bg: rgba(139, 125, 255, 0.14);
+      --today-border: rgba(139, 125, 255, 0.4);
+      --bg-gradient-a: #12101f;
+      --bg-gradient-b: #0a1628;
+      --scroll-track: rgba(255, 255, 255, 0.04);
+      --scroll-thumb-top: #a599ff;
+      --scroll-thumb-bottom: #2dd4bf;
+      --radius: 22px;
+      --radius-sm: 14px;
+      --radius-xs: 10px;
+    }
+
+    [data-theme="light"] {
+      --bg: #eceff6;
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-solid: #ffffff;
+      --surface-2: #f5f7fb;
+      --surface-hover: #e9edf5;
+      --border: rgba(15, 23, 42, 0.07);
+      --border-strong: rgba(15, 23, 42, 0.12);
+      --text: #0f1524;
+      --muted: #5f6b80;
+      --accent: #5b4fe8;
+      --accent-2: #0d9488;
+      --accent-hover: #4f43d8;
+      --shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+      --shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --chart-grid: rgba(15, 23, 42, 0.06);
+      --tooltip-bg: #ffffff;
+      --tooltip-text: #0f1524;
+      --tooltip-border: rgba(15, 23, 42, 0.08);
+      --focus-ring: rgba(91, 79, 232, 0.2);
+      --today-bg: rgba(91, 79, 232, 0.09);
+      --today-border: rgba(91, 79, 232, 0.28);
+      --bg-gradient-a: #e8ecf8;
+      --bg-gradient-b: #dce8f5;
+      --scroll-track: rgba(15, 23, 42, 0.06);
+      --scroll-thumb-top: #7c6cff;
+      --scroll-thumb-bottom: #14b8a6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+    }
+
+    html::-webkit-scrollbar { width: 10px; height: 10px; }
+    html::-webkit-scrollbar-track {
+      background: var(--scroll-track);
+      border-radius: 999px;
+    }
+    html::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--scroll-thumb-top), var(--scroll-thumb-bottom));
+      border-radius: 999px;
+      border: 2px solid var(--scroll-track);
+    }
+    html::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+    }
+
+    body {
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      background:
+        linear-gradient(160deg, var(--bg-gradient-a) 0%, var(--bg) 38%, var(--bg-gradient-b) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .bg-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-scene::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 55% 45% at 15% 0%, rgba(139, 125, 255, 0.22), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 85% 5%, rgba(45, 212, 191, 0.16), transparent 55%),
+        radial-gradient(ellipse 40% 35% at 50% 100%, rgba(244, 114, 182, 0.1), transparent 50%),
+        radial-gradient(rgba(139, 125, 255, 0.1) 1px, transparent 1px);
+      background-size: auto, auto, auto, 28px 28px;
+      mask-image: radial-gradient(ellipse 95% 85% at 50% -5%, black, transparent 72%);
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+    }
+
+    .orb-1 { width: 500px; height: 500px; background: #8b7dff; top: -180px; left: -120px; opacity: 0.35; }
+    .orb-2 { width: 400px; height: 400px; background: #2dd4bf; top: 20px; right: -140px; opacity: 0.22; }
+    .orb-3 { width: 300px; height: 300px; background: #f472b6; bottom: 5%; left: 35%; opacity: 0.14; }
+
+    [data-theme="light"] .orb-1 { opacity: 0.2; }
+    [data-theme="light"] .orb-2 { opacity: 0.14; }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* Header */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-mark {
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 12px 28px rgba(139, 125, 255, 0.35);
+    }
+
+    .brand-mark svg { width: 26px; height: 26px; color: white; }
+
+    .brand h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .brand p { color: var(--muted); font-size: 0.86rem; margin-top: 1px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+    .toolbar-group {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      transition: transform 0.12s, background 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+
+    button:active { transform: scale(0.96); }
+    button:disabled { cursor: not-allowed; opacity: 0.45; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #6d5dfc);
+      color: white;
+      padding: 10px 16px;
+      box-shadow: 0 8px 22px rgba(139, 125, 255, 0.32);
+    }
+
+    .btn-primary:hover { filter: brightness(1.07); box-shadow: 0 10px 26px rgba(139, 125, 255, 0.4); }
+
+    .btn-ghost, .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      padding: 9px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary { background: var(--surface-2); border: 1px solid var(--border); }
+    .btn-ghost:hover, .btn-secondary:hover { background: var(--surface-hover); }
+
+    .btn-icon {
+      width: 38px; height: 38px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    }
+
+    .btn-icon:hover { background: var(--surface-hover); }
+
+    .btn-danger {
+      width: 28px; height: 28px; padding: 0;
+      background: transparent; color: var(--muted); border-radius: 8px;
+      opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s;
+    }
+
+    tr:hover .btn-danger { opacity: 1; }
+    .btn-danger:hover { background: rgba(251, 113, 133, 0.14); color: var(--danger); }
+
+    .icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .save-badge {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--success);
+      box-shadow: var(--shadow-sm);
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+
+    .save-badge.show { opacity: 1; transform: translateY(0); }
+    .save-badge::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .cloud-badge {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .cloud-badge::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--cloud-color, var(--muted));
+    }
+
+    .cloud-badge.synced { color: var(--success); --cloud-color: var(--success); }
+    .cloud-badge.saving { color: var(--warning); --cloud-color: var(--warning); }
+    .cloud-badge.offline { color: var(--muted); --cloud-color: var(--muted); }
+    .cloud-badge.error { color: var(--danger); --cloud-color: var(--danger); }
+
+    @media (max-width: 640px) {
+      .cloud-badge { top: auto; bottom: 72px; left: 50%; transform: translateX(-50%); }
+      .save-badge { top: 16px; right: 16px; }
+    }
+
+    /* Week nav */
+    .week-shell {
+      background: linear-gradient(135deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 85%, var(--accent) 15%) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .week-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .week-nav-center { flex: 1; text-align: center; min-width: 180px; }
+
+    .week-label {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .week-sublabel { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    .week-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-left: 8px;
+      padding: 3px 10px;
+      background: rgba(52, 211, 153, 0.16);
+      color: var(--success);
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      vertical-align: middle;
+    }
+
+    .week-badge::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 800px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat {
+      position: relative;
+      background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface) 80%, var(--stat-accent, var(--accent)) 20%));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 16px 16px 56px;
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .stat::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: linear-gradient(180deg, var(--stat-accent, var(--accent)), color-mix(in srgb, var(--stat-accent, var(--accent)) 50%, transparent));
+      border-radius: 4px 0 0 4px;
+    }
+
+    .stat-icon {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--stat-accent, var(--accent)) 18%, transparent);
+      color: var(--stat-accent, var(--accent));
+    }
+
+    .stat-icon svg { width: 16px; height: 16px; }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-top: 2px;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-value.leader {
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .leader-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    .content-panel {
+      animation: fadeIn 0.35s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: linear-gradient(160deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title { display: flex; align-items: center; gap: 10px; }
+
+    .card-title-icon {
+      width: 36px; height: 36px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, rgba(139, 125, 255, 0.2), rgba(45, 212, 191, 0.12));
+      display: grid; place-items: center;
+      color: var(--accent);
+    }
+
+    .card-title-icon svg { width: 18px; height: 18px; }
+
+    .card-header h2 { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; }
+    .card-sub { font-size: 0.74rem; color: var(--muted); margin-top: 1px; }
+
+    .pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      border-radius: 999px;
+    }
+
+    .card-body { padding: 18px 20px 20px; }
+
+    .chart-wrap {
+      position: relative;
+      height: 340px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)) 0%, transparent 85%);
+      border: 1px solid var(--border);
+      padding: 10px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 14px 20px 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s, opacity 0.2s, border-color 0.15s;
+    }
+
+    .legend-item:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+    .legend-item.hidden { opacity: 0.35; text-decoration: line-through; }
+    .legend-item.active { border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+    .legend-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 25%, transparent);
+    }
+
+    /* Scoreboard */
+    .table-wrap {
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scroll-thumb-top) transparent;
+    }
+
+    .table-wrap::-webkit-scrollbar { height: 8px; }
+    .table-wrap::-webkit-scrollbar-track { background: transparent; border-radius: 999px; }
+    .table-wrap::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, var(--scroll-thumb-top), var(--scroll-thumb-bottom));
+      border-radius: 999px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+    }
+
+    th, td {
+      padding: 9px 7px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--surface-2);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    th:first-child { border-radius: 10px 0 0 0; text-align: left; padding-left: 12px; }
+    th:last-child { border-radius: 0 10px 0 0; }
+
+    th.today, td.today {
+      background: var(--today-bg);
+      box-shadow: inset 0 0 0 1px var(--today-border);
+    }
+
+    th.today .day-tag {
+      display: block;
+      margin-top: 3px;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      font-size: 0.58rem;
+      letter-spacing: 0.04em;
+    }
+
+    th:first-child, td:first-child { text-align: left; min-width: 180px; padding-left: 14px; }
+    tr:last-child td { border-bottom: none; }
+
+    tbody tr { transition: background 0.12s; }
+    tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+    .participant-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar-wrap { position: relative; flex-shrink: 0; }
+
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 0.72rem; font-weight: 800;
+      color: white;
+    }
+
+    .color-input {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      opacity: 0; cursor: pointer; border: none; padding: 0;
+    }
+
+    .name-input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 600;
+      padding: 6px 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .name-input:hover { background: var(--surface-2); border-color: var(--border); }
+    .name-input:focus {
+      outline: none;
+      background: var(--surface-2);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    .points-input {
+      width: 58px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 800;
+      padding: 8px 4px;
+      text-align: center;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s, background 0.15s;
+      -moz-appearance: textfield;
+    }
+
+    .points-input::-webkit-outer-spin-button,
+    .points-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .points-input:hover { border-color: var(--border-strong); }
+
+    .points-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+      transform: scale(1.05);
+    }
+
+    td.today .points-input {
+      border-color: var(--today-border);
+    }
+
+    .total-cell {
+      font-weight: 800;
+      font-size: 0.92rem;
+      color: var(--accent);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 50px 24px;
+      color: var(--muted);
+    }
+
+    .empty-illustration {
+      width: 80px; height: 80px;
+      margin: 0 auto 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(139, 125, 255, 0.18), rgba(45, 212, 191, 0.12));
+      display: grid; place-items: center;
+      color: var(--accent);
+    }
+
+    .empty-illustration svg { width: 36px; height: 36px; }
+    .empty-state h3 { color: var(--text); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+    .empty-state p { margin-bottom: 18px; font-size: 0.86rem; }
+
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface-solid);
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      padding: 12px 22px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    footer {
+      margin-top: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    footer code {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .hidden-input { display: none; }
+  </style>
+</head>
+<body>
+  <div class="bg-scene" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="save-badge" id="saveBadge">Saved</div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+        </div>
+        <div>
+          <h1>Points Tracker</h1>
+          <p>Team scoreboard · Mon – Fri</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button class="btn-icon" id="btnTheme" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+          <button class="btn-ghost" id="btnExport" title="Export JSON">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="btn-ghost" id="btnImport" title="Import JSON">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import
+          </button>
+          <input type="file" id="importFile" class="hidden-input" accept=".json,application/json" />
+        </div>
+        <div class="toolbar-group">
+          <button class="btn-secondary" id="btnResetWeek">Reset</button>
+          <button class="btn-primary" id="btnAdd">+ Add</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="week-shell content-panel" id="weekShell">
+      <div class="week-nav">
+        <button class="btn-secondary" id="btnPrevWeek" title="Previous week (←)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+          Prev
+        </button>
+        <div class="week-nav-center">
+          <div class="week-label" id="weekLabel">—</div>
+          <div class="week-sublabel" id="weekSublabel"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary" id="btnCurrentWeek">Today</button>
+          <button class="btn-secondary" id="btnNextWeek" title="Next week (→)">
+            Next
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row content-panel" id="stats"></div>
+
+    <div class="main-grid content-panel" id="mainGrid">
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/></svg>
+            </div>
+            <div>
+              <h2>Weekly progress</h2>
+              <div class="card-sub">Tap legend to focus lines</div>
+            </div>
+          </div>
+          <span class="pill" id="scaleHint">0–100</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chart"></canvas></div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            </div>
+            <div>
+              <h2>Data entry</h2>
+              <div class="card-sub">Score standing at end of each day</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body table-wrap" id="tableContainer"></div>
+      </section>
+    </div>
+
+    <footer>Auto-saved to cloud when configured · <code>←</code> <code>→</code> change weeks</footer>
+  </div>
+
+  <div class="cloud-badge offline" id="cloudBadge">Local only · free setup in config.js</div>
+  <div class="toast" id="toast"></div>
+
+  <script src="config.js" onerror="window.APP_CONFIG=null"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script>
+    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const STORAGE_KEY = "points-tracker-v2";
+    const LEGACY_KEY = "points-tracker-v1";
+    const DEFAULT_COLORS = ["#9333ea", "#ef4444", "#14b8a6", "#f97316", "#64748b", "#eab308", "#ec4899", "#3b82f6"];
+    const STAT_ICONS = {
+      people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      max: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+      total: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
+      leader: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    };
+
+    const defaultParticipants = () => [
+      { id: crypto.randomUUID(), name: "Kristina", color: "#9333ea", points: [0, 0, 30, 60, 0] },
+      { id: crypto.randomUUID(), name: "Arsen", color: "#ef4444", points: [0, 40, 60, 70, 0] },
+      { id: crypto.randomUUID(), name: "Andrew", color: "#14b8a6", points: [0, 65, 65, 65, 0] },
+      { id: crypto.randomUUID(), name: "Tim", color: "#f97316", points: [20, 20, 20, 20, 0] },
+      { id: crypto.randomUUID(), name: "Ilya", color: "#64748b", points: [15, 40, 40, 90, 0] },
+    ];
+
+    let store = null;
+    let chart = null;
+    const hiddenIds = new Set();
+    let focusedId = null;
+    let cloudDbRef = null;
+    let cloudReady = false;
+    let cloudSaveTimer = null;
+    let applyingRemote = false;
+
+    function getCloudConfig() {
+      const cfg = window.APP_CONFIG;
+      const fb = cfg?.firebase;
+      if (!fb?.apiKey || !fb?.databaseURL) return null;
+      if (fb.apiKey.includes("YOUR_")) return null;
+      return cfg;
+    }
+
+    function setCloudStatus(state, text) {
+      const el = document.getElementById("cloudBadge");
+      if (!el) return;
+      el.className = "cloud-badge " + state;
+      el.textContent = text;
+    }
+
+    function applyRemoteStore(remote) {
+      if (!remote?.weeks) return;
+      const remoteTime = Date.parse(remote.updatedAt || 0);
+      const localTime = Date.parse(store.updatedAt || 0);
+      if (remoteTime <= localTime) return;
+
+      applyingRemote = true;
+      store = mergeStores(store, remote);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      applyTheme(store.theme || "dark");
+      hiddenIds.clear();
+      focusedId = null;
+      renderAll();
+      applyingRemote = false;
+      setCloudStatus("synced", "Free cloud · synced");
+    }
+
+    async function initCloud() {
+      const cfg = getCloudConfig();
+      if (!cfg || !window.firebase) {
+        setCloudStatus("offline", "Local only · free setup in config.js");
+        return false;
+      }
+
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(cfg.firebase);
+        const teamId = cfg.teamId || "team";
+        cloudDbRef = firebase.database().ref("points-tracker/" + teamId);
+
+        const snapshot = await cloudDbRef.once("value");
+        const remote = snapshot.val();
+        if (remote?.weeks) {
+          store = mergeStores(store, remote);
+          saveStore(false);
+        } else if (Object.keys(store.weeks || {}).length) {
+          await pushToCloud();
+        }
+
+        cloudDbRef.on("value", (snap) => {
+          if (applyingRemote) return;
+          applyRemoteStore(snap.val());
+        });
+
+        cloudReady = true;
+        setCloudStatus("synced", "Free cloud · synced");
+        return true;
+      } catch (err) {
+        console.error("Cloud init failed:", err);
+        setCloudStatus("error", "Cloud error — check config.js");
+        return false;
+      }
+    }
+
+    function scheduleCloudSave() {
+      if (!cloudReady || applyingRemote) return;
+      setCloudStatus("saving", "Saving…");
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(pushToCloud, 600);
+    }
+
+    async function pushToCloud() {
+      if (!cloudReady || !cloudDbRef || applyingRemote) return;
+
+      try {
+        applyingRemote = true;
+        await cloudDbRef.set(store);
+        setCloudStatus("synced", "Free cloud · synced");
+      } catch (err) {
+        console.error("Cloud save failed:", err);
+        setCloudStatus("error", "Save failed");
+      } finally {
+        applyingRemote = false;
+      }
+    }
+
+    function initials(name) {
+      return String(name).trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || "").join("") || "?";
+    }
+
+    function getTodayIndex() {
+      const d = new Date().getDay();
+      return d >= 1 && d <= 5 ? d - 1 : -1;
+    }
+
+    function isViewingCurrentWeek() {
+      return store.currentWeek === getISOWeekKey();
+    }
+
+    function cloneParticipants(list) {
+      return list.map((p) => ({
+        id: p.id || crypto.randomUUID(),
+        name: p.name,
+        color: p.color,
+        points: [...(p.points || [0, 0, 0, 0, 0])],
+      }));
+    }
+
+    function getISOWeekKey(date = new Date()) {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const day = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+    }
+
+    function parseWeekKey(key) {
+      const [, year, week] = key.match(/^(\d{4})-W(\d{2})$/) || [];
+      return { year: +year, week: +week };
+    }
+
+    function getMondayOfWeek(key) {
+      const { year, week } = parseWeekKey(key);
+      const jan4 = new Date(Date.UTC(year, 0, 4));
+      const day = jan4.getUTCDay() || 7;
+      const monday = new Date(jan4);
+      monday.setUTCDate(jan4.getUTCDate() - day + 1 + (week - 1) * 7);
+      return monday;
+    }
+
+    function shiftWeekKey(key, delta) {
+      const monday = getMondayOfWeek(key);
+      monday.setUTCDate(monday.getUTCDate() + delta * 7);
+      return getISOWeekKey(new Date(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate()));
+    }
+
+    function formatWeekRange(key) {
+      const monday = getMondayOfWeek(key);
+      const friday = new Date(monday);
+      friday.setUTCDate(monday.getUTCDate() + 4);
+      const fmt = (d) => d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+      return `${fmt(monday)} – ${fmt(friday)}, ${friday.getUTCFullYear()}`;
+    }
+
+    function defaultStore() {
+      const currentWeek = getISOWeekKey();
+      return {
+        version: 2,
+        updatedAt: new Date().toISOString(),
+        theme: "dark",
+        currentWeek,
+        weeks: { [currentWeek]: { participants: defaultParticipants() } },
+      };
+    }
+
+    function ensureWeek(key) {
+      if (!store.weeks[key]) {
+        const prevKey = shiftWeekKey(key, -1);
+        const template = store.weeks[prevKey]?.participants;
+        store.weeks[key] = {
+          participants: template
+            ? cloneParticipants(template).map((p) => ({ ...p, id: crypto.randomUUID(), points: [0, 0, 0, 0, 0] }))
+            : defaultParticipants().map((p) => ({ ...p, id: crypto.randomUUID(), points: [0, 0, 0, 0, 0] })),
+        };
+      }
+    }
+
+    function getWeekData() {
+      ensureWeek(store.currentWeek);
+      return store.weeks[store.currentWeek];
+    }
+
+    function migrateLegacy() {
+      try {
+        const raw = localStorage.getItem(LEGACY_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.participants?.length) return null;
+        const currentWeek = getISOWeekKey();
+        return {
+          version: 2,
+          updatedAt: new Date().toISOString(),
+          theme: "dark",
+          currentWeek,
+          weeks: { [currentWeek]: { participants: cloneParticipants(parsed.participants) } },
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function loadLocalStore() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.weeks && parsed.currentWeek) return parsed;
+        }
+      } catch (_) {}
+      return migrateLegacy() || defaultStore();
+    }
+
+    function flashSave() {
+      const el = document.getElementById("saveBadge");
+      el.classList.add("show");
+      clearTimeout(flashSave._t);
+      flashSave._t = setTimeout(() => el.classList.remove("show"), 1400);
+    }
+
+    function saveStore(showIndicator = true) {
+      store.updatedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      if (localStorage.getItem(LEGACY_KEY)) localStorage.removeItem(LEGACY_KEY);
+      if (showIndicator) flashSave();
+      if (showIndicator) scheduleCloudSave();
+    }
+
+    function mergeStores(local, remote) {
+      if (!remote?.weeks) return local;
+      const merged = { ...local, weeks: { ...local.weeks } };
+      const remoteTime = Date.parse(remote.updatedAt || 0);
+      const localTime = Date.parse(local.updatedAt || 0);
+
+      for (const [key, week] of Object.entries(remote.weeks)) {
+        if (!merged.weeks[key]) merged.weeks[key] = week;
+        else if (remoteTime >= localTime) merged.weeks[key] = week;
+      }
+
+      if (remoteTime > localTime) {
+        merged.updatedAt = remote.updatedAt;
+        if (remote.theme) merged.theme = remote.theme;
+      }
+
+      return merged;
+    }
+
+    async function loadRemoteData() {
+      try {
+        const res = await fetch("./data.json?" + Date.now(), { cache: "no-store" });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
+      document.getElementById("btnTheme").textContent = theme === "light" ? "🌙" : "☀️";
+      if (chart) {
+        applyChartTheme();
+        updateChartGradients();
+        chart.update("none");
+      }
+    }
+
+    function toggleTheme() {
+      store.theme = store.theme === "light" ? "dark" : "light";
+      applyTheme(store.theme);
+      saveStore();
+    }
+
+    function applyChartTheme() {
+      const root = getComputedStyle(document.documentElement);
+      const opts = chart.options;
+      opts.plugins.tooltip.backgroundColor = root.getPropertyValue("--tooltip-bg").trim();
+      opts.plugins.tooltip.titleColor = root.getPropertyValue("--tooltip-text").trim();
+      opts.plugins.tooltip.bodyColor = root.getPropertyValue("--tooltip-text").trim();
+      opts.plugins.tooltip.borderColor = root.getPropertyValue("--tooltip-border").trim();
+      opts.scales.x.grid.color = root.getPropertyValue("--chart-grid").trim();
+      opts.scales.y.grid.color = root.getPropertyValue("--chart-grid").trim();
+      opts.scales.x.ticks.color = root.getPropertyValue("--muted").trim();
+      opts.scales.y.ticks.color = root.getPropertyValue("--muted").trim();
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function chartLinePoints(points) {
+      const result = [];
+      let last = 0;
+      for (let i = 0; i < points.length; i++) {
+        const v = Number(points[i]) || 0;
+        if (v > 0) {
+          last = v;
+          result.push(v);
+        } else if (last > 0) {
+          result.push(last);
+        } else {
+          result.push(0);
+        }
+      }
+      return result;
+    }
+
+    function maxPoints() {
+      const participants = getWeekData().participants;
+      let max = 100;
+      for (const p of participants) {
+        for (const v of chartLinePoints(p.points)) max = Math.max(max, v);
+      }
+      return Math.ceil(max / 10) * 10 || 100;
+    }
+
+    function animatePanels() {
+      ["weekShell", "stats", "mainGrid"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.animation = "none";
+        el.offsetHeight;
+        el.style.animation = "";
+      });
+    }
+
+    function participantTotal(p) {
+      const line = chartLinePoints(p.points);
+      return line.length ? line[line.length - 1] : 0;
+    }
+
+    function getWeeklyLeader(participants) {
+      if (!participants.length) return null;
+
+      const scored = participants.map((p) => ({ ...p, total: participantTotal(p) }));
+      const maxTotal = Math.max(...scored.map((s) => s.total));
+
+      if (maxTotal <= 0) return null;
+
+      const leaders = scored.filter((s) => s.total === maxTotal);
+      if (leaders.length === 1) return { type: "single", person: leaders[0], total: maxTotal };
+
+      return {
+        type: "tie",
+        people: leaders,
+        total: maxTotal,
+        label: leaders.map((p) => p.name).join(", "),
+      };
+    }
+
+    function renderStats() {
+      const participants = getWeekData().participants;
+      const el = document.getElementById("stats");
+      const allValues = participants.flatMap((p) => chartLinePoints(p.points));
+      const max = allValues.length ? Math.max(...allValues) : 0;
+      const total = participants.reduce((sum, p) => sum + participantTotal(p), 0);
+      const leader = getWeeklyLeader(participants);
+
+      let leaderHtml = "—";
+      if (leader?.type === "single") {
+        leaderHtml = `<span class="leader-dot" style="background:${leader.person.color}"></span>${escapeHtml(leader.person.name)}`;
+      } else if (leader?.type === "tie") {
+        leaderHtml = `<span class="leader-dot" style="background:var(--accent)"></span>${escapeHtml(leader.label)} <span style="font-size:0.72rem;color:var(--muted);font-weight:600">(tie)</span>`;
+      }
+
+      el.innerHTML = `
+        <div class="stat" style="--stat-accent:#8b7dff">
+          <div class="stat-icon">${STAT_ICONS.people}</div>
+          <div class="stat-label">Participants</div>
+          <div class="stat-value">${participants.length}</div>
+        </div>
+        <div class="stat" style="--stat-accent:#2dd4bf">
+          <div class="stat-icon">${STAT_ICONS.max}</div>
+          <div class="stat-label">Daily high</div>
+          <div class="stat-value">${max}</div>
+        </div>
+        <div class="stat" style="--stat-accent:#fbbf24">
+          <div class="stat-icon">${STAT_ICONS.total}</div>
+          <div class="stat-label">Total points</div>
+          <div class="stat-value">${total}</div>
+        </div>
+        <div class="stat" style="--stat-accent:#f472b6">
+          <div class="stat-icon">${STAT_ICONS.leader}</div>
+          <div class="stat-label">Leader</div>
+          <div class="stat-value leader">${leaderHtml}</div>
+        </div>`;
+    }
+
+    function renderWeekNav() {
+      const isCurrent = isViewingCurrentWeek();
+      document.getElementById("weekLabel").innerHTML =
+        `Week ${store.currentWeek.replace("-W", " · ")}` +
+        (isCurrent ? '<span class="week-badge">live</span>' : "");
+      document.getElementById("weekSublabel").textContent = formatWeekRange(store.currentWeek);
+      document.getElementById("btnNextWeek").disabled = isCurrent;
+    }
+
+    function renderTable() {
+      const container = document.getElementById("tableContainer");
+      const participants = getWeekData().participants;
+      const todayIdx = isViewingCurrentWeek() ? getTodayIndex() : -1;
+
+      if (!participants.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-illustration">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <h3>No participants yet</h3>
+            <p>Add your team members to start tracking daily points.</p>
+            <button class="btn-primary" onclick="document.getElementById('btnAdd').click()">+ Add participant</button>
+          </div>`;
+        return;
+      }
+
+      const head = DAYS.map((d, i) =>
+        `<th class="${i === todayIdx ? "today" : ""}">${d}${i === todayIdx ? '<span class="day-tag">today</span>' : ""}</th>`
+      ).join("");
+
+      const rows = participants.map((p) => {
+        const cells = p.points.map((val, dayIdx) => `
+          <td class="${dayIdx === todayIdx ? "today" : ""}">
+            <input type="number" min="0" step="1" class="points-input"
+              value="${val}"
+              data-id="${p.id}" data-day="${dayIdx}"
+              aria-label="${p.name} ${DAYS[dayIdx]}" />
+          </td>`).join("");
+        const total = participantTotal(p);
+
+        return `
+          <tr>
+            <td>
+              <div class="participant-cell">
+                <div class="avatar-wrap">
+                  <div class="avatar" style="background:${p.color}">${initials(p.name)}</div>
+                  <input type="color" class="color-input" value="${p.color}"
+                    data-id="${p.id}" data-field="color" title="Change color" />
+                </div>
+                <input type="text" class="name-input" value="${escapeHtml(p.name)}"
+                  data-id="${p.id}" data-field="name" maxlength="24" />
+                <button class="btn-danger" data-remove="${p.id}" title="Remove">✕</button>
+              </div>
+            </td>
+            ${cells}
+            <td class="total-cell">${total}</td>
+          </tr>`;
+      }).join("");
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Participant</th>
+              ${head}
+              <th>Standing</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      container.querySelectorAll(".points-input").forEach((input) => {
+        input.addEventListener("input", onPointsChange);
+        input.addEventListener("blur", onPointsBlur);
+      });
+      container.querySelectorAll(".name-input, .color-input").forEach((input) => {
+        input.addEventListener("input", onMetaChange);
+      });
+      container.querySelectorAll("[data-remove]").forEach((btn) => {
+        btn.addEventListener("click", () => removeParticipant(btn.dataset.remove));
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    }
+
+    function onPointsChange(e) {
+      const participants = getWeekData().participants;
+      const id = e.target.dataset.id;
+      const day = +e.target.dataset.day;
+      const p = participants.find((x) => x.id === id);
+      if (!p) return;
+      const raw = e.target.value;
+      p.points[day] = raw === "" ? 0 : Math.max(0, Math.round(Number(raw) || 0));
+
+      saveStore();
+      updateChart();
+      renderStats();
+      updateTotalsInTable();
+      updateScaleHint();
+    }
+
+    function onPointsBlur(e) {
+      const p = getWeekData().participants.find((x) => x.id === e.target.dataset.id);
+      e.target.value = p?.points[+e.target.dataset.day] ?? 0;
+    }
+
+    function onMetaChange(e) {
+      const participants = getWeekData().participants;
+      const id = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const p = participants.find((x) => x.id === id);
+      if (!p) return;
+      p[field] = field === "name" ? e.target.value.trim() || "Unnamed" : e.target.value;
+      saveStore();
+      if (field === "color" || field === "name") renderTable();
+      updateChart();
+      renderLegend();
+      renderStats();
+    }
+
+    function updateTotalsInTable() {
+      const participants = getWeekData().participants;
+      document.querySelectorAll("#tableContainer tbody tr").forEach((row, i) => {
+        const p = participants[i];
+        const totalCell = row.querySelector(".total-cell");
+        if (p && totalCell) totalCell.textContent = participantTotal(p);
+      });
+    }
+
+    function updateScaleHint() {
+      const max = maxPoints();
+      document.getElementById("scaleHint").textContent = max > 100 ? `0–${max}` : "0–100";
+    }
+
+    function renderLegend() {
+      const participants = getWeekData().participants;
+      const el = document.getElementById("legend");
+      el.innerHTML = participants.map((p) => `
+        <span class="legend-item ${hiddenIds.has(p.id) ? "hidden" : ""} ${focusedId === p.id ? "active" : ""}"
+          data-toggle="${p.id}" style="color:${p.color}">
+          <span class="legend-dot" style="background:${p.color}"></span>
+          ${escapeHtml(p.name)}
+        </span>`).join("");
+
+      el.querySelectorAll("[data-toggle]").forEach((item) => {
+        item.addEventListener("click", () => {
+          const id = item.dataset.toggle;
+          if (focusedId === id) {
+            focusedId = null;
+            hiddenIds.clear();
+          } else {
+            focusedId = id;
+            hiddenIds.clear();
+            participants.forEach((p) => { if (p.id !== id) hiddenIds.add(p.id); });
+          }
+          renderLegend();
+          updateChart();
+        });
+      });
+    }
+
+    function makeGradient(ctx, color) {
+      const g = ctx.createLinearGradient(0, 0, 0, 340);
+      g.addColorStop(0, color + "40");
+      g.addColorStop(1, color + "00");
+      return g;
+    }
+
+    function updateChartGradients() {
+      if (!chart) return;
+      const ctx = chart.ctx;
+      chart.data.datasets.forEach((ds, i) => {
+        const p = getWeekData().participants[i];
+        if (p) ds.backgroundColor = makeGradient(ctx, p.color);
+      });
+    }
+
+    function getChartColors() {
+      const root = getComputedStyle(document.documentElement);
+      return {
+        grid: root.getPropertyValue("--chart-grid").trim(),
+        muted: root.getPropertyValue("--muted").trim(),
+        pointBorder: root.getPropertyValue("--chart-point-border").trim(),
+        tooltipBg: root.getPropertyValue("--tooltip-bg").trim(),
+        tooltipText: root.getPropertyValue("--tooltip-text").trim(),
+        tooltipBorder: root.getPropertyValue("--tooltip-border").trim(),
+      };
+    }
+
+    function buildChartData() {
+      const participants = getWeekData().participants;
+      const colors = getChartColors();
+      return {
+        labels: DAYS,
+        datasets: participants.map((p) => ({
+          label: p.name,
+          _pid: p.id,
+          data: chartLinePoints(p.points),
+          borderColor: p.color,
+          backgroundColor: p.color + "30",
+          pointBackgroundColor: p.color,
+          pointBorderColor: colors.pointBorder,
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          borderWidth: focusedId && focusedId !== p.id ? 1.5 : 3,
+          tension: 0.38,
+          fill: true,
+          hidden: hiddenIds.has(p.id),
+        })),
+        _colors: colors,
+      };
+    }
+
+    function initChart() {
+      const ctx = document.getElementById("chart").getContext("2d");
+      const data = buildChartData();
+      const c = data._colors;
+      delete data._colors;
+
+      data.datasets.forEach((ds, i) => {
+        const p = getWeekData().participants[i];
+        if (p) ds.backgroundColor = makeGradient(ctx, p.color);
+      });
+
+      chart = new Chart(ctx, {
+        type: "line",
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 500, easing: "easeOutQuart" },
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: c.tooltipBg,
+              titleColor: c.tooltipText,
+              bodyColor: c.tooltipText,
+              borderColor: c.tooltipBorder,
+              borderWidth: 1,
+              padding: 14,
+              cornerRadius: 12,
+              displayColors: true,
+              callbacks: {
+                label(ctx) {
+                  return ` ${ctx.dataset.label}: ${ctx.parsed.y} pts`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: c.muted, font: { family: "Plus Jakarta Sans", weight: "700", size: 12 }, padding: 8 },
+            },
+            y: {
+              min: 0,
+              max: maxPoints(),
+              grid: { color: c.grid, drawBorder: false },
+              border: { display: false },
+              ticks: {
+                color: c.muted,
+                stepSize: maxPoints() > 100 ? Math.ceil(maxPoints() / 10) : 10,
+                font: { family: "Plus Jakarta Sans", size: 11 },
+                padding: 10,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function updateChart() {
+      if (!chart) return;
+      const data = buildChartData();
+      delete data._colors;
+      chart.data = data;
+      updateChartGradients();
+      chart.options.scales.y.max = maxPoints();
+      chart.options.scales.y.ticks.stepSize = maxPoints() > 100 ? Math.ceil(maxPoints() / 10) : 10;
+
+      chart.data.datasets.forEach((ds) => {
+        ds.borderWidth = focusedId && focusedId !== ds._pid ? 1.5 : 3;
+      });
+
+      chart.update();
+    }
+
+    function addParticipant() {
+      const participants = getWeekData().participants;
+      const usedColors = new Set(participants.map((p) => p.color));
+      const color = DEFAULT_COLORS.find((c) => !usedColors.has(c)) || DEFAULT_COLORS[participants.length % DEFAULT_COLORS.length];
+      participants.push({
+        id: crypto.randomUUID(),
+        name: `Participant ${participants.length + 1}`,
+        color,
+        points: [0, 0, 0, 0, 0],
+      });
+      saveStore();
+      renderAll();
+      showToast("Participant added");
+    }
+
+    function removeParticipant(id) {
+      if (getWeekData().participants.length <= 1) {
+        showToast("Need at least one participant");
+        return;
+      }
+      getWeekData().participants = getWeekData().participants.filter((p) => p.id !== id);
+      hiddenIds.delete(id);
+      if (focusedId === id) focusedId = null;
+      saveStore();
+      renderAll();
+      showToast("Participant removed");
+    }
+
+    function resetWeek() {
+      if (!confirm("Reset all points this week? Names and colors stay.")) return;
+      getWeekData().participants.forEach((p) => { p.points = [0, 0, 0, 0, 0]; });
+      saveStore();
+      renderAll();
+      showToast("Week reset");
+    }
+
+    function changeWeek(delta) {
+      const next = shiftWeekKey(store.currentWeek, delta);
+      if (delta > 0 && next > getISOWeekKey()) return;
+      store.currentWeek = next;
+      hiddenIds.clear();
+      focusedId = null;
+      saveStore();
+      renderAll();
+      animatePanels();
+    }
+
+    function goToCurrentWeek() {
+      store.currentWeek = getISOWeekKey();
+      hiddenIds.clear();
+      focusedId = null;
+      saveStore();
+      renderAll();
+      animatePanels();
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "data.json";
+      a.click();
+      showToast("Downloaded data.json");
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!imported?.weeks) throw new Error("invalid");
+          store = mergeStores(store, imported);
+          if (imported.currentWeek) store.currentWeek = imported.currentWeek;
+          if (imported.theme) store.theme = imported.theme;
+          saveStore();
+          applyTheme(store.theme);
+          hiddenIds.clear();
+          focusedId = null;
+          renderAll();
+          showToast("Import successful");
+        } catch (_) {
+          showToast("Invalid JSON file");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function renderAll() {
+      renderWeekNav();
+      renderStats();
+      renderTable();
+      renderLegend();
+      updateChart();
+      updateScaleHint();
+    }
+
+    async function init() {
+      store = loadLocalStore();
+      const remote = await loadRemoteData();
+      if (remote) store = mergeStores(store, remote);
+      saveStore(false);
+
+      await initCloud();
+
+      applyTheme(store.theme || "dark");
+      renderAll();
+      initChart();
+
+      document.getElementById("btnAdd").addEventListener("click", addParticipant);
+      document.getElementById("btnResetWeek").addEventListener("click", resetWeek);
+      document.getElementById("btnTheme").addEventListener("click", toggleTheme);
+      document.getElementById("btnExport").addEventListener("click", exportData);
+      document.getElementById("btnImport").addEventListener("click", () => document.getElementById("importFile").click());
+      document.getElementById("importFile").addEventListener("change", (e) => {
+        if (e.target.files[0]) importData(e.target.files[0]);
+        e.target.value = "";
+      });
+      document.getElementById("btnPrevWeek").addEventListener("click", () => changeWeek(-1));
+      document.getElementById("btnNextWeek").addEventListener("click", () => changeWeek(1));
+      document.getElementById("btnCurrentWeek").addEventListener("click", goToCurrentWeek);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.target.matches("input, textarea")) return;
+        if (e.key === "ArrowLeft") changeWeek(-1);
+        if (e.key === "ArrowRight") changeWeek(1);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
