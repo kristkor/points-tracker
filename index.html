@@ -853,7 +853,7 @@
             </div>
             <div>
               <h2>Data entry</h2>
-              <div class="card-sub">Score standing at end of each day</div>
+              <div class="card-sub">Points per day · Total is the weekly sum</div>
             </div>
           </div>
         </div>
@@ -1209,19 +1209,16 @@
 
     function chartLinePoints(points) {
       const result = [];
-      let last = 0;
+      let running = 0;
       for (let i = 0; i < points.length; i++) {
-        const v = Number(points[i]) || 0;
-        if (v > 0) {
-          last = v;
-          result.push(v);
-        } else if (last > 0) {
-          result.push(last);
-        } else {
-          result.push(0);
-        }
+        running += Number(points[i]) || 0;
+        result.push(running);
       }
       return result;
+    }
+
+    function dailyPointsTotal(points) {
+      return (points || []).reduce((sum, v) => sum + (Number(v) || 0), 0);
     }
 
     function maxPoints() {
@@ -1244,8 +1241,7 @@
     }
 
     function participantTotal(p) {
-      const line = chartLinePoints(p.points);
-      return line.length ? line[line.length - 1] : 0;
+      return dailyPointsTotal(p.points);
     }
 
     function getWeeklyLeader(participants) {
@@ -1270,7 +1266,7 @@
     function renderStats() {
       const participants = getWeekData().participants;
       const el = document.getElementById("stats");
-      const allValues = participants.flatMap((p) => chartLinePoints(p.points));
+      const allValues = participants.flatMap((p) => p.points.map((v) => Number(v) || 0));
       const max = allValues.length ? Math.max(...allValues) : 0;
       const total = participants.reduce((sum, p) => sum + participantTotal(p), 0);
       const leader = getWeeklyLeader(participants);
@@ -1371,7 +1367,7 @@
             <tr>
               <th>Participant</th>
               ${head}
-              <th>Standing</th>
+              <th>Total</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
