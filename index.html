@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <title>Points Tracker</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="favicon.svg" />
@@ -945,14 +946,18 @@
       el.textContent = text;
     }
 
+    function cloneStore(data) {
+      return JSON.parse(JSON.stringify(data));
+    }
+
     function applyRemoteStore(remote) {
-      if (!remote?.weeks) return;
+      if (!remote?.weeks) return false;
       const remoteTime = Date.parse(remote.updatedAt || 0);
       const localTime = Date.parse(store.updatedAt || 0);
-      if (remoteTime <= localTime) return;
+      if (remoteTime <= localTime) return false;
 
       applyingRemote = true;
-      store = mergeStores(store, remote);
+      store = cloneStore(remote);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
       applyTheme(store.theme || "dark");
       hiddenIds.clear();
@@ -960,6 +965,17 @@
       renderAll();
       applyingRemote = false;
       setCloudStatus("synced", "Free cloud · synced");
+      return true;
+    }
+
+    async function pullFromCloud() {
+      if (!cloudReady || !cloudDbRef || applyingRemote) return;
+      try {
+        const snapshot = await cloudDbRef.once("value");
+        applyRemoteStore(snapshot.val());
+      } catch (err) {
+        console.error("Cloud pull failed:", err);
+      }
     }
 
     async function initCloud() {
@@ -977,10 +993,14 @@
         const snapshot = await cloudDbRef.once("value");
         const remote = snapshot.val();
         if (remote?.weeks) {
-          store = mergeStores(store, remote);
-          saveStore(false);
+          store = cloneStore(remote);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
         } else if (Object.keys(store.weeks || {}).length) {
-          await pushToCloud();
+          store.updatedAt = new Date().toISOString();
+          applyingRemote = true;
+          await cloudDbRef.set(store);
+          applyingRemote = false;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
         }
 
         cloudDbRef.on("value", (snap) => {
@@ -1145,7 +1165,7 @@
     }
 
     function saveStore(showIndicator = true) {
-      store.updatedAt = new Date().toISOString();
+      if (showIndicator) store.updatedAt = new Date().toISOString();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
       if (localStorage.getItem(LEGACY_KEY)) localStorage.removeItem(LEGACY_KEY);
       if (showIndicator) flashSave();
@@ -1716,17 +1736,26 @@
 
     async function init() {
       store = loadLocalStore();
-      const remote = await loadRemoteData();
-      if (remote) store = mergeStores(store, remote);
+
+      const hasCloud = getCloudConfig() && window.firebase;
+      if (!hasCloud) {
+        const remote = await loadRemoteData();
+        if (remote) store = mergeStores(store, remote);
+      }
 
       await initCloud();
 
-      applyTeamColors();
-      saveStore(false);
+      if (applyTeamColors()) saveStore(true);
+      else localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 
       applyTheme(store.theme || "dark");
       renderAll();
       initChart();
+
+      window.addEventListener("focus", pullFromCloud);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") pullFromCloud();
+      });
 
       document.getElementById("btnAdd").addEventListener("click", addParticipant);
       document.getElementById("btnResetWeek").addEventListener("click", resetWeek);
