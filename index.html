@@ -923,6 +923,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script>
     const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const CHART_LABELS = ["", ...DAYS];
     const STORAGE_KEY = "points-tracker-v2";
     const LEGACY_KEY = "points-tracker-v1";
     const DEFAULT_COLORS = ["#8B5CF6", "#F472B6", "#22D3EE", "#FB923C", "#6366F1", "#34D399", "#FBBF24", "#A78BFA"];
@@ -1073,6 +1074,12 @@
     function getTodayIndex() {
       const d = new Date().getDay();
       return d >= 1 && d <= 5 ? d - 1 : -1;
+    }
+
+    function getChartLastDayIndex() {
+      if (!isViewingCurrentWeek()) return DAYS.length - 1;
+      const today = getTodayIndex();
+      return today >= 0 ? today : DAYS.length - 1;
     }
 
     function isViewingCurrentWeek() {
@@ -1278,12 +1285,16 @@
       showToast._t = setTimeout(() => el.classList.remove("show"), 2600);
     }
 
-    function chartLinePoints(points) {
-      const result = [];
+    function chartLinePoints(points, lastDayIndex = DAYS.length - 1) {
+      const result = [0];
       let running = 0;
       for (let i = 0; i < points.length; i++) {
-        running += Number(points[i]) || 0;
-        result.push(running);
+        if (i > lastDayIndex) {
+          result.push(null);
+        } else {
+          running += Number(points[i]) || 0;
+          result.push(running);
+        }
       }
       return result;
     }
@@ -1294,9 +1305,12 @@
 
     function maxPoints() {
       const participants = getWeekData().participants;
+      const lastDay = getChartLastDayIndex();
       let max = 100;
       for (const p of participants) {
-        for (const v of chartLinePoints(p.points)) max = Math.max(max, v);
+        for (const v of chartLinePoints(p.points, lastDay)) {
+          if (v != null) max = Math.max(max, v);
+        }
       }
       return Math.ceil(max / 10) * 10 || 100;
     }
@@ -1613,21 +1627,23 @@
     function buildChartData() {
       const participants = getWeekData().participants;
       const colors = getChartColors();
+      const lastDay = getChartLastDayIndex();
       return {
-        labels: DAYS,
+        labels: CHART_LABELS,
         datasets: participants.map((p) => ({
           label: p.name,
           _pid: p.id,
-          data: chartLinePoints(p.points),
+          data: chartLinePoints(p.points, lastDay),
           borderColor: p.color,
           backgroundColor: p.color + "30",
           pointBackgroundColor: p.color,
           pointBorderColor: colors.pointBorder,
           pointBorderWidth: 2,
-          pointRadius: 5,
-          pointHoverRadius: 8,
+          pointRadius: (ctx) => (ctx.dataIndex === 0 ? 0 : 5),
+          pointHoverRadius: (ctx) => (ctx.dataIndex === 0 ? 0 : 8),
           borderWidth: focusedId && focusedId !== p.id ? 1.5 : 3,
           tension: 0.38,
+          spanGaps: false,
           fill: true,
           hidden: hiddenIds.has(p.id),
         })),
@@ -1666,8 +1682,16 @@
               cornerRadius: 12,
               displayColors: true,
               callbacks: {
+                title(items) {
+                  const label = items[0]?.label;
+                  return label || "";
+                },
                 label(ctx) {
+                  if (ctx.parsed.y == null) return null;
                   return ` ${ctx.dataset.label}: ${ctx.parsed.y} pts`;
+                },
+                filter(item) {
+                  return item.parsed.y != null && item.dataIndex > 0;
                 },
               },
             },
