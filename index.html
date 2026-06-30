@@ -1079,7 +1079,17 @@
     function getChartLastDayIndex() {
       if (!isViewingCurrentWeek()) return DAYS.length - 1;
       const today = getTodayIndex();
-      return today >= 0 ? today : DAYS.length - 1;
+      if (today < 0) return DAYS.length - 1;
+      return today - 1;
+    }
+
+    function chartXTickLabel(chartIndex) {
+      const dayIndex = chartIndex - 1;
+      if (dayIndex >= 0 && isViewingCurrentWeek()) {
+        const today = getTodayIndex();
+        if (today >= 0 && dayIndex >= today) return "";
+      }
+      return CHART_LABELS[chartIndex] ?? "";
     }
 
     function isViewingCurrentWeek() {
@@ -1699,7 +1709,14 @@
           scales: {
             x: {
               grid: { display: false },
-              ticks: { color: c.muted, font: { family: "Plus Jakarta Sans", weight: "700", size: 12 }, padding: 8 },
+              ticks: {
+                color: c.muted,
+                font: { family: "Plus Jakarta Sans", weight: "700", size: 12 },
+                padding: 8,
+                callback(_, index) {
+                  return chartXTickLabel(index);
+                },
+              },
             },
             y: {
               min: 0,
