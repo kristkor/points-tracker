@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "theme": "light",
+  "currentWeek": "2026-W26",
+  "weeks": {
+    "2026-W26": {
+      "participants": [
+        {
+          "id": "kristina",
+          "name": "Kristina",
+          "color": "#8B5CF6",
+          "points": [0, 0, 30, 60, 0]
+        },
+        {
+          "id": "arsen",
+          "name": "Arsen",
+          "color": "#F472B6",
+          "points": [0, 40, 60, 70, 0]
+        },
+        {
+          "id": "andrew",
+          "name": "Andrew",
+          "color": "#22D3EE",
+          "points": [0, 65, 65, 65, 0]
+        },
+        {
+          "id": "tim",
+          "name": "Tim",
+          "color": "#FB923C",
+          "points": [20, 20, 20, 20, 0]
+        },
+        {
+          "id": "ilya",
+          "name": "Ilya",
+          "color": "#6366F1",
+          "points": [15, 40, 40, 90, 0]
+        }
+      ]
+    }
+  }
+}
