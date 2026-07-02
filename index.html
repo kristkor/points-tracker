@@ -38,6 +38,8 @@
       --focus-ring: rgba(139, 125, 255, 0.32);
       --today-bg: rgba(139, 125, 255, 0.14);
       --today-border: rgba(139, 125, 255, 0.4);
+      --total-col-bg: rgba(139, 125, 255, 0.18);
+      --total-col-text: #c8c0ff;
       --bg-gradient-a: #12101f;
       --bg-gradient-b: #0a1628;
       --scroll-track: rgba(255, 255, 255, 0.04);
@@ -70,6 +72,8 @@
       --focus-ring: rgba(91, 79, 232, 0.2);
       --today-bg: rgba(91, 79, 232, 0.09);
       --today-border: rgba(91, 79, 232, 0.28);
+      --total-col-bg: rgba(91, 79, 232, 0.12);
+      --total-col-text: #4338ca;
       --bg-gradient-a: #e8ecf8;
       --bg-gradient-b: #dce8f5;
       --scroll-track: rgba(15, 23, 42, 0.06);
@@ -144,7 +148,7 @@
     .app {
       position: relative;
       z-index: 1;
-      max-width: 1280px;
+      max-width: 1440px;
       margin: 0 auto;
       padding: 24px 20px 60px;
     }
@@ -465,10 +469,10 @@
       flex-shrink: 0;
     }
 
-    /* Main grid */
+    /* Main grid — table column gets more width so the scoreboard fits without scrolling */
     .main-grid {
       display: grid;
-      grid-template-columns: 1.35fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
       gap: 16px;
       align-items: start;
     }
@@ -602,14 +606,14 @@
 
     table {
       width: 100%;
-      min-width: 640px;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 0.82rem;
+      table-layout: fixed;
     }
 
     th, td {
-      padding: 9px 7px;
+      padding: 9px 5px;
       text-align: center;
       border-bottom: 1px solid var(--border);
     }
@@ -654,9 +658,26 @@
 
     th:first-child, td:first-child {
       text-align: left;
-      min-width: 200px;
-      max-width: 240px;
+      width: 34%;
       padding-left: 14px;
+    }
+
+    th:nth-child(2), td:nth-child(2) {
+      width: 8%;
+    }
+
+    th:nth-child(2),
+    td.total-cell {
+      background: var(--total-col-bg);
+      box-shadow: inset 1px 0 0 color-mix(in srgb, var(--accent) 28%, transparent);
+    }
+
+    th:nth-child(2) {
+      color: var(--total-col-text);
+    }
+
+    tbody tr:hover td.total-cell {
+      background: color-mix(in srgb, var(--accent) 24%, var(--surface-solid));
     }
 
     td:first-child {
@@ -720,7 +741,8 @@
     }
 
     .points-input {
-      width: 58px;
+      width: 100%;
+      max-width: 52px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -752,8 +774,9 @@
 
     .total-cell {
       font-weight: 800;
-      font-size: 0.92rem;
-      color: var(--accent);
+      font-size: 0.95rem;
+      color: var(--total-col-text);
+      text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 50%, transparent);
     }
 
     .empty-state {
