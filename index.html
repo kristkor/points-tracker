@@ -1362,6 +1362,14 @@
       return dailyPointsTotal(p.points);
     }
 
+    function sortParticipantsByTotal(participants) {
+      return [...participants].sort((a, b) => {
+        const diff = participantTotal(b) - participantTotal(a);
+        if (diff !== 0) return diff;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+    }
+
     function getWeeklyLeader(participants) {
       if (!participants.length) return null;
 
@@ -1430,7 +1438,7 @@
 
     function renderTable() {
       const container = document.getElementById("tableContainer");
-      const participants = getWeekData().participants;
+      const participants = sortParticipantsByTotal(getWeekData().participants);
       const todayIdx = isViewingCurrentWeek() ? getTodayIndex() : -1;
 
       if (!participants.length) {
@@ -1530,6 +1538,7 @@
     function onPointsBlur(e) {
       const p = getWeekData().participants.find((x) => x.id === e.target.dataset.id);
       e.target.value = p?.points[+e.target.dataset.day] ?? 0;
+      renderTable();
     }
 
     function updateParticipantVisuals(id) {
@@ -1589,9 +1598,9 @@
     }
 
     function updateTotalsInTable() {
-      const participants = getWeekData().participants;
-      document.querySelectorAll("#tableContainer tbody tr").forEach((row, i) => {
-        const p = participants[i];
+      document.querySelectorAll("#tableContainer tbody tr").forEach((row) => {
+        const id = row.querySelector(".name-input")?.dataset.id;
+        const p = getWeekData().participants.find((x) => x.id === id);
         const totalCell = row.querySelector(".total-cell");
         if (p && totalCell) totalCell.textContent = participantTotal(p);
       });
