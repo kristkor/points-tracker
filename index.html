@@ -1763,7 +1763,7 @@
     };
     const ATT_TYPES = {
       present: { label: "Present", short: "P", colorVar: "--att-present", countsHours: true },
-      vacation: { label: "Vacation", short: "V", colorVar: "--att-vacation", countsHours: false },
+      vacation: { label: "Vacation", short: "V", colorVar: "--att-vacation", countsHours: true },
       sick: { label: "Sick", short: "S", colorVar: "--att-sick", countsHours: true },
       absent: { label: "Absent", short: "A", colorVar: "--att-absent", countsHours: false },
       holiday: { label: "Holiday", short: "H", colorVar: "--att-holiday", countsHours: true },
@@ -2059,8 +2059,8 @@
         if (ATT_TYPES[raw.type].countsHours && (raw.hours == null || raw.hours === "")) {
           return makeAttEntry(raw.type, getDefaultDayHours());
         }
-        // Older sick/holiday entries stored 0h — treat as a full paid day
-        if ((raw.type === "sick" || raw.type === "holiday") && Number(raw.hours) === 0) {
+        // Older leave entries stored 0h — treat as a full paid day
+        if ((raw.type === "sick" || raw.type === "holiday" || raw.type === "vacation") && Number(raw.hours) === 0) {
           return makeAttEntry(raw.type, getDefaultDayHours());
         }
         return makeAttEntry(raw.type, raw.hours);
@@ -3147,8 +3147,8 @@
       document.getElementById("attWeekendFilter").hidden = attMode !== "month";
       document.getElementById("btnFillWeekPresent").hidden = attMode !== "week";
       document.getElementById("attHint").innerHTML = attMode === "week"
-        ? `Present, sick, and holiday count as <strong>8h</strong> toward the weekly total (usually <strong>${getTargetWeekHours()}h</strong>). Click hours to adjust. Today’s column is highlighted.`
-        : `Select a brush, then click days to paint. Present / sick / holiday = 8h. Click a <kbd>day header</kbd> to paint the whole team. Keys <kbd>1</kbd>–<kbd>5</kbd> switch brushes.`;
+        ? `Present, vacation, sick, and holiday count as <strong>8h</strong> toward the weekly total (usually <strong>${getTargetWeekHours()}h</strong>). Click hours to adjust. Today’s column is highlighted.`
+        : `Select a brush, then click days to paint. Present / vacation / sick / holiday = 8h. Click a <kbd>day header</kbd> to paint the whole team. Keys <kbd>1</kbd>–<kbd>5</kbd> switch brushes.`;
       if (persist) saveStore();
       renderAttendance();
     }
@@ -3168,7 +3168,7 @@
       const footer = document.getElementById("appFooter");
       if (currentView === "attendance") {
         if (brandSub) brandSub.textContent = "Team attendance · hours & leave";
-        if (footer) footer.innerHTML = "Auto-saved · Present / sick / holiday = 8h · weekly total usually 40h";
+        if (footer) footer.innerHTML = "Auto-saved · Present / vacation / sick / holiday = 8h · weekly total usually 40h";
         setAttMode(attMode, false);
       } else {
         if (brandSub) brandSub.textContent = "Team scoreboard · Mon – Fri";
