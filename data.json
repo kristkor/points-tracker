@@ -1,8 +1,10 @@
 {
-  "version": 2,
+  "version": 3,
   "updatedAt": "2026-06-29T00:00:00.000Z",
   "theme": "light",
   "currentWeek": "2026-W26",
+  "currentView": "points",
+  "attendanceMonth": "2026-07",
   "weeks": {
     "2026-W26": {
       "participants": [
@@ -38,5 +40,16 @@
         }
       ]
     }
+  },
+  "attendance": {
+    "employees": [
+      { "id": "kavita", "name": "Kavita Ramgahan", "color": "#F472B6" },
+      { "id": "arsen", "name": "Arsen Savenko", "color": "#8B5CF6" },
+      { "id": "tymofii", "name": "Tymofii Bilenko", "color": "#FB923C" },
+      { "id": "kristina", "name": "Kristina Korzhenevskaya", "color": "#A78BFA" },
+      { "id": "andrii", "name": "Andrii Kornieienko", "color": "#22D3EE" },
+      { "id": "ilia", "name": "Ilia Loginov", "color": "#6366F1" }
+    ],
+    "months": {}
   }
 }
