@@ -890,7 +890,7 @@
       align-items: center;
     }
 
-    .att-select, .att-search {
+    .att-select, .att-search, .att-people-trigger {
       font-family: inherit;
       font-size: 0.82rem;
       font-weight: 600;
@@ -904,9 +904,127 @@
       transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    .att-select:focus, .att-search:focus {
+    .att-select:focus, .att-search:focus, .att-people-trigger:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    .att-people-filter {
+      position: relative;
+    }
+
+    .att-people-trigger {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 150px;
+    }
+
+    .att-people-trigger::after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--muted);
+      margin-left: auto;
+    }
+
+    .att-people-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 40;
+      min-width: 240px;
+      max-height: 280px;
+      overflow: auto;
+      padding: 8px;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .att-people-panel[hidden] { display: none !important; }
+
+    .att-people-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .att-people-option:hover { background: var(--surface-hover); }
+
+    .att-people-option input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .att-people-option .av {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .att-people-actions {
+      display: flex;
+      gap: 6px;
+      padding: 6px 4px 2px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    .att-people-actions button {
+      flex: 1;
+      font-size: 0.72rem;
+      padding: 7px 8px;
+    }
+
+    .att-emp-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .att-emp .name-input {
+      flex: 1;
+      min-width: 0;
+      max-width: 140px;
+    }
+
+    .btn-att-remove {
+      opacity: 0;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 4px 7px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+
+    tr:hover .btn-att-remove { opacity: 1; }
+    .btn-att-remove:hover {
+      background: rgba(251, 113, 133, 0.12);
+      border-color: rgba(251, 113, 133, 0.25);
+      color: var(--danger);
     }
 
     .att-search { min-width: 160px; }
@@ -1084,9 +1202,9 @@
       position: sticky;
       left: 0;
       z-index: 5;
-      width: 200px;
-      min-width: 200px;
-      max-width: 200px;
+      width: 240px;
+      min-width: 220px;
+      max-width: 260px;
       text-align: left;
       background: var(--surface-solid);
       box-shadow: 2px 0 0 var(--border);
@@ -1573,7 +1691,10 @@
             <button type="button" class="att-mode-tab active" id="attModeMonth" data-att-mode="month">Month</button>
             <button type="button" class="att-mode-tab" id="attModeWeek" data-att-mode="week">Week hours</button>
           </div>
-          <input type="search" class="att-search" id="attSearch" placeholder="Filter people…" aria-label="Filter employees" />
+          <div class="att-people-filter" id="attPeopleFilter">
+            <button type="button" class="att-people-trigger" id="attPeopleTrigger" aria-haspopup="listbox" aria-expanded="false">People · All</button>
+            <div class="att-people-panel" id="attPeoplePanel" hidden role="listbox" aria-label="Filter people"></div>
+          </div>
           <select class="att-select" id="attTypeFilter" aria-label="Filter by type">
             <option value="all">All types</option>
             <option value="present">Present</option>
@@ -1606,6 +1727,7 @@
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <button class="btn-secondary" id="btnFillWeekPresent" title="Mark all weekdays Present for everyone">Fill week · 8h</button>
+            <button class="btn-primary" id="btnAddAttPerson">+ Add person</button>
             <span class="pill" id="attMonthPill">—</span>
           </div>
         </div>
@@ -1683,10 +1805,11 @@
     let attBrush = "present";
     let attMode = "month";
     let attTypeFilter = "all";
-    let attSearch = "";
+    let attFilterIds = null; // null = all people visible
     let showWeekends = false;
     let attPainting = false;
     let attPaintValue = null;
+    let attPeoplePanelOpen = false;
 
     function getCloudConfig() {
       const cfg = window.APP_CONFIG;
@@ -1954,6 +2077,15 @@
       }
       if (!Array.isArray(store.attendance.employees) || !store.attendance.employees.length) {
         store.attendance.employees = ATT_EMPLOYEES.map((e) => ({ ...e }));
+      } else {
+        // Normalize existing roster — keep user-added people
+        store.attendance.employees = store.attendance.employees
+          .filter((e) => e && e.id && e.name)
+          .map((e) => ({
+            id: String(e.id),
+            name: String(e.name).trim() || "Unnamed",
+            color: e.color || DEFAULT_COLORS[0],
+          }));
       }
       if (!store.attendance.months || typeof store.attendance.months !== "object") {
         store.attendance.months = {};
@@ -1964,12 +2096,6 @@
       if (!Number.isFinite(Number(store.attendance.targetWeekHours)) || Number(store.attendance.targetWeekHours) <= 0) {
         store.attendance.targetWeekHours = TARGET_WEEK_HOURS;
       }
-      const byId = Object.fromEntries(store.attendance.employees.map((e) => [e.id, e]));
-      store.attendance.employees = ATT_EMPLOYEES.map((def) => ({
-        id: def.id,
-        name: def.name,
-        color: byId[def.id]?.color || def.color,
-      }));
       if (!store.attendanceMonth) {
         const now = new Date();
         store.attendanceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -2844,8 +2970,171 @@
 
     function filteredAttEmployees() {
       ensureAttendance();
-      const q = attSearch.trim().toLowerCase();
-      return store.attendance.employees.filter((e) => !q || e.name.toLowerCase().includes(q));
+      const all = store.attendance.employees;
+      if (!attFilterIds) return all;
+      return all.filter((e) => attFilterIds.has(e.id));
+    }
+
+    function nextAttColor() {
+      ensureAttendance();
+      const used = new Set(store.attendance.employees.map((e) => e.color));
+      return DEFAULT_COLORS.find((c) => !used.has(c))
+        || DEFAULT_COLORS[store.attendance.employees.length % DEFAULT_COLORS.length];
+    }
+
+    function addAttEmployee() {
+      ensureAttendance();
+      const name = prompt("Employee name");
+      if (name == null) return;
+      const trimmed = name.trim();
+      if (!trimmed) {
+        showToast("Name required");
+        return;
+      }
+      const id = crypto.randomUUID();
+      store.attendance.employees.push({
+        id,
+        name: trimmed,
+        color: nextAttColor(),
+      });
+      if (attFilterIds) attFilterIds.add(id);
+      saveStore();
+      renderAttendance();
+      showToast(`${trimmed} added`);
+    }
+
+    function removeAttEmployee(id) {
+      ensureAttendance();
+      const person = store.attendance.employees.find((e) => e.id === id);
+      if (!person) return;
+      if (store.attendance.employees.length <= 1) {
+        showToast("Need at least one person");
+        return;
+      }
+      if (!confirm(`Remove ${person.name} from attendance?\n\nTheir marked days stay in history but they leave the roster.`)) return;
+      store.attendance.employees = store.attendance.employees.filter((e) => e.id !== id);
+      if (attFilterIds) {
+        attFilterIds.delete(id);
+        if (!attFilterIds.size) attFilterIds = null;
+      }
+      saveStore();
+      renderAttendance();
+      showToast(`${person.name} removed`);
+    }
+
+    function renameAttEmployee(id, name) {
+      ensureAttendance();
+      const person = store.attendance.employees.find((e) => e.id === id);
+      if (!person) return;
+      const trimmed = String(name).trim() || "Unnamed";
+      person.name = trimmed;
+      saveStore();
+      renderAttPeopleFilter();
+    }
+
+    function setAttPeoplePanel(open) {
+      attPeoplePanelOpen = open;
+      const panel = document.getElementById("attPeoplePanel");
+      const trigger = document.getElementById("attPeopleTrigger");
+      if (!panel || !trigger) return;
+      panel.hidden = !open;
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) renderAttPeopleFilter();
+    }
+
+    function renderAttPeopleFilter() {
+      ensureAttendance();
+      const all = store.attendance.employees;
+      const visible = filteredAttEmployees();
+      const trigger = document.getElementById("attPeopleTrigger");
+      const panel = document.getElementById("attPeoplePanel");
+      if (!trigger || !panel) return;
+
+      if (!attFilterIds || attFilterIds.size === all.length) {
+        trigger.textContent = `People · All (${all.length})`;
+      } else {
+        trigger.textContent = `People · ${visible.length} of ${all.length}`;
+      }
+
+      const allChecked = !attFilterIds || attFilterIds.size === all.length;
+      panel.innerHTML = `
+        <label class="att-people-option">
+          <input type="checkbox" data-att-all ${allChecked ? "checked" : ""} />
+          <span>All people</span>
+        </label>
+        ${all.map((emp) => {
+          const checked = !attFilterIds || attFilterIds.has(emp.id);
+          return `
+            <label class="att-people-option">
+              <input type="checkbox" data-att-person="${emp.id}" ${checked ? "checked" : ""} />
+              <span class="av" style="background:${emp.color}">${initials(emp.name)}</span>
+              <span>${escapeHtml(emp.name)}</span>
+            </label>`;
+        }).join("")}
+        <div class="att-people-actions">
+          <button type="button" class="btn-secondary" data-att-only-visible>Only selected</button>
+          <button type="button" class="btn-secondary" data-att-clear-filter>Show all</button>
+        </div>`;
+
+      panel.querySelector("[data-att-all]")?.addEventListener("change", (e) => {
+        attFilterIds = e.target.checked ? null : new Set();
+        renderAttendance();
+      });
+      panel.querySelectorAll("[data-att-person]").forEach((input) => {
+        input.addEventListener("change", () => {
+          const checked = [...panel.querySelectorAll("[data-att-person]:checked")].map((el) => el.dataset.attPerson);
+          attFilterIds = checked.length === all.length ? null : new Set(checked);
+          renderAttendance();
+        });
+      });
+      panel.querySelector("[data-att-clear-filter]")?.addEventListener("click", () => {
+        attFilterIds = null;
+        renderAttendance();
+      });
+      panel.querySelector("[data-att-only-visible]")?.addEventListener("click", () => {
+        const checked = [...panel.querySelectorAll("[data-att-person]:checked")].map((el) => el.dataset.attPerson);
+        if (!checked.length) {
+          showToast("Select at least one person");
+          return;
+        }
+        attFilterIds = new Set(checked);
+        setAttPeoplePanel(false);
+        renderAttendance();
+      });
+    }
+
+    function attNameCellHtml(emp, extraChip = "") {
+      return `
+        <td class="att-name-col">
+          <div class="att-emp">
+            <div class="avatar" style="background:${emp.color}">${initials(emp.name)}</div>
+            <input type="text" class="name-input" value="${escapeHtml(emp.name)}"
+              data-att-rename="${emp.id}" maxlength="40" aria-label="Rename ${escapeHtml(emp.name)}" />
+            <div class="att-emp-actions">
+              <button type="button" class="btn-att-remove" data-att-remove="${emp.id}" title="Remove person">Remove</button>
+            </div>
+          </div>
+          <div class="att-row-totals" style="padding-left:40px">${extraChip}</div>
+        </td>`;
+    }
+
+    function bindAttRosterEvents(root = document.getElementById("attGrid")) {
+      if (!root) return;
+      root.querySelectorAll("[data-att-remove]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          removeAttEmployee(btn.dataset.attRemove);
+        });
+      });
+      root.querySelectorAll("[data-att-rename]").forEach((input) => {
+        input.addEventListener("mousedown", (e) => e.stopPropagation());
+        input.addEventListener("click", (e) => e.stopPropagation());
+        input.addEventListener("change", () => renameAttEmployee(input.dataset.attRename, input.value));
+        input.addEventListener("blur", () => {
+          const person = store.attendance.employees.find((e) => e.id === input.dataset.attRename);
+          if (person) input.value = person.name;
+        });
+      });
     }
 
     function setAttMode(mode, persist = true) {
@@ -3027,6 +3316,7 @@
       ensureAttendance();
       renderAttBrushBar();
       renderAttStats();
+      renderAttPeopleFilter();
       document.getElementById("attLegendFooter").innerHTML = ATT_TYPE_ORDER.map((type) => `
         <span><span class="att-legend-dot" style="background:var(${ATT_TYPES[type].colorVar})"></span>
         ${ATT_TYPES[type].label}${ATT_TYPES[type].countsHours ? " · 8h" : ` (${ATT_TYPES[type].short})`}</span>`).join("");
@@ -3089,17 +3379,7 @@
 
         return `
           <tr>
-            <td class="att-name-col">
-              <div class="att-emp">
-                <div class="avatar" style="background:${emp.color}">${initials(emp.name)}</div>
-                <div style="min-width:0">
-                  <div class="att-emp-name" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</div>
-                  <div class="att-row-totals">
-                    <span class="att-hours-chip">${formatHours(total)}h this week</span>
-                  </div>
-                </div>
-              </div>
-            </td>
+            ${attNameCellHtml(emp, `<span class="att-hours-chip">${formatHours(total)}h this week</span>`)}
             ${cells}
             <td class="att-total-col ${totalClass(total)}">${formatHours(total)}h</td>
           </tr>`;
@@ -3121,6 +3401,7 @@
 
       applyAttTypeFilterDim();
       bindAttWeekEvents();
+      bindAttRosterEvents();
     }
 
     function bindAttWeekEvents() {
@@ -3271,18 +3552,7 @@
 
         return `
           <tr>
-            <td class="att-name-col">
-              <div class="att-emp">
-                <div class="avatar" style="background:${emp.color}">${initials(emp.name)}</div>
-                <div style="min-width:0">
-                  <div class="att-emp-name" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</div>
-                  <div class="att-row-totals">
-                    ${minis}
-                    <span class="att-hours-chip">${formatHours(monthHours)}h</span>
-                  </div>
-                </div>
-              </div>
-            </td>
+            ${attNameCellHtml(emp, `${minis}<span class="att-hours-chip">${formatHours(monthHours)}h</span>`)}
             ${cells}
           </tr>`;
       }).join("");
@@ -3300,6 +3570,7 @@
 
       applyAttTypeFilterDim();
       bindAttMonthEvents();
+      bindAttRosterEvents();
 
       document.querySelectorAll("#attGrid [data-paint-day]").forEach((th) => {
         th.addEventListener("click", () => {
@@ -3458,11 +3729,17 @@
       document.getElementById("btnNextAttPeriod").addEventListener("click", () => changeAttPeriod(1));
       document.getElementById("btnCurrentAttPeriod").addEventListener("click", goToCurrentAttPeriod);
       document.getElementById("btnFillWeekPresent").addEventListener("click", fillWeekPresent);
+      document.getElementById("btnAddAttPerson").addEventListener("click", addAttEmployee);
       document.getElementById("attModeWeek").addEventListener("click", () => setAttMode("week"));
       document.getElementById("attModeMonth").addEventListener("click", () => setAttMode("month"));
-      document.getElementById("attSearch").addEventListener("input", (e) => {
-        attSearch = e.target.value;
-        renderAttendance();
+      document.getElementById("attPeopleTrigger").addEventListener("click", (e) => {
+        e.stopPropagation();
+        setAttPeoplePanel(!attPeoplePanelOpen);
+      });
+      document.addEventListener("click", (e) => {
+        if (!attPeoplePanelOpen) return;
+        const wrap = document.getElementById("attPeopleFilter");
+        if (wrap && !wrap.contains(e.target)) setAttPeoplePanel(false);
       });
       document.getElementById("attTypeFilter").addEventListener("change", (e) => {
         attTypeFilter = e.target.value;
