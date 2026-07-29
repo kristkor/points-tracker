@@ -982,13 +982,13 @@
 
     .att-stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 12px;
       margin-bottom: 16px;
     }
 
     @media (max-width: 800px) {
-      .att-stats { grid-template-columns: repeat(2, 1fr); }
+      .att-stats { grid-template-columns: 1fr 1fr; }
     }
 
     .att-stat {
@@ -1157,6 +1157,7 @@
 
     .att-cell.dimmed { opacity: 0.22; }
 
+    .att-cell[data-type="present"] { background: var(--att-present); }
     .att-cell[data-type="vacation"] { background: var(--att-vacation); }
     .att-cell[data-type="sick"] { background: var(--att-sick); }
     .att-cell[data-type="absent"] { background: var(--att-absent); }
@@ -1167,21 +1168,228 @@
       font-weight: 800;
       color: rgba(0, 0, 0, 0.55);
       letter-spacing: 0.02em;
+      pointer-events: none;
     }
 
     [data-theme="dark"] .att-cell-mark { color: rgba(255, 255, 255, 0.85); }
+
+    .att-hours-input {
+      width: 100%;
+      max-width: 42px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 4px 0;
+      -moz-appearance: textfield;
+    }
+
+    .att-hours-input::-webkit-outer-spin-button,
+    .att-hours-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .att-hours-input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+
+    [data-theme="dark"] .att-hours-input:focus {
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .att-week-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+      table-layout: fixed;
+    }
+
+    .att-week-table th, .att-week-table td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 6px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .att-week-table th {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--surface-2);
+    }
+
+    .att-week-table th.att-name-col,
+    .att-week-table td.att-name-col {
+      text-align: left;
+      width: 28%;
+      padding-left: 12px;
+      position: sticky;
+      left: 0;
+      background: var(--surface-solid);
+      z-index: 2;
+      box-shadow: 1px 0 0 var(--border);
+    }
+
+    .att-week-table thead th.att-name-col { background: var(--surface-2); z-index: 3; }
+
+    .att-week-table th.att-total-col,
+    .att-week-table td.att-total-col {
+      background: var(--total-col-bg);
+      color: var(--total-col-text);
+      font-weight: 800;
+      width: 12%;
+    }
+
+    .att-week-cell {
+      min-height: 52px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      padding: 6px 4px;
+      transition: transform 0.1s, box-shadow 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+
+    .att-week-cell:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+
+    .att-week-cell[data-type="present"] {
+      background: color-mix(in srgb, var(--att-present) 55%, var(--surface-2));
+      border-color: color-mix(in srgb, var(--att-present) 55%, transparent);
+    }
+    .att-week-cell[data-type="vacation"] {
+      background: color-mix(in srgb, var(--att-vacation) 55%, var(--surface-2));
+      border-color: color-mix(in srgb, var(--att-vacation) 55%, transparent);
+    }
+    .att-week-cell[data-type="sick"] {
+      background: color-mix(in srgb, var(--att-sick) 55%, var(--surface-2));
+      border-color: color-mix(in srgb, var(--att-sick) 55%, transparent);
+    }
+    .att-week-cell[data-type="absent"] {
+      background: color-mix(in srgb, var(--att-absent) 45%, var(--surface-2));
+      border-color: color-mix(in srgb, var(--att-absent) 45%, transparent);
+    }
+    .att-week-cell[data-type="holiday"] {
+      background: color-mix(in srgb, var(--att-holiday) 50%, var(--surface-2));
+      border-color: color-mix(in srgb, var(--att-holiday) 50%, transparent);
+    }
+
+    .att-week-cell.today-col {
+      box-shadow: 0 0 0 2px var(--today-border);
+    }
+
+    .att-week-type {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .att-week-cell[data-type] .att-week-type { color: var(--text); opacity: 0.75; }
+
+    .att-total-ok { color: var(--success); }
+    .att-total-low { color: var(--warning); }
+    .att-total-zero { color: var(--muted); }
+
+    .att-mode-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .att-mode-tab {
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .att-mode-tab.active {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+    }
+
+    .att-hours-setting {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .att-hours-setting input {
+      width: 48px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px 6px;
+      text-align: center;
+    }
+
+    .att-hours-setting input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    .att-stats {
+      /* week hours / present / leave */
+    }
+
+    @media (max-width: 900px) {
+      .att-stats { grid-template-columns: repeat(2, 1fr); }
+    }
 
     .att-row-totals {
       display: flex;
       gap: 4px;
       margin-top: 4px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .att-mini {
       width: 8px;
       height: 8px;
       border-radius: 2px;
+    }
+
+    .att-hours-chip {
+      font-size: 0.64rem;
+      font-weight: 800;
+      color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 1px 6px;
     }
 
     .att-legend-footer {
@@ -1207,6 +1415,7 @@
     }
 
     :root {
+      --att-present: #38bdf8;
       --att-vacation: #facc15;
       --att-sick: #f87171;
       --att-absent: #94a3b8;
@@ -1214,6 +1423,7 @@
     }
 
     [data-theme="light"] {
+      --att-present: #0ea5e9;
       --att-vacation: #eab308;
       --att-sick: #ef4444;
       --att-absent: #64748b;
@@ -1339,17 +1549,17 @@
       <div class="att-toolbar">
         <div class="week-shell" style="margin:0;flex:1;min-width:260px">
           <div class="week-nav">
-            <button class="btn-secondary" id="btnPrevMonth" title="Previous month">
+            <button class="btn-secondary" id="btnPrevAttPeriod" title="Previous">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
               Prev
             </button>
             <div class="week-nav-center">
-              <div class="week-label" id="monthLabel">—</div>
-              <div class="week-sublabel" id="monthSublabel">Click a brush, then paint days</div>
+              <div class="week-label" id="attPeriodLabel">—</div>
+              <div class="week-sublabel" id="attPeriodSublabel">Present = 8h by default · edit any day</div>
             </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn-secondary" id="btnCurrentMonth">Today</button>
-              <button class="btn-secondary" id="btnNextMonth" title="Next month">
+              <button class="btn-secondary" id="btnCurrentAttPeriod">Today</button>
+              <button class="btn-secondary" id="btnNextAttPeriod" title="Next">
                 Next
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
@@ -1357,15 +1567,25 @@
           </div>
         </div>
         <div class="att-filters">
+          <div class="att-mode-tabs" role="tablist" aria-label="Attendance mode">
+            <button type="button" class="att-mode-tab active" id="attModeWeek" data-att-mode="week">Week hours</button>
+            <button type="button" class="att-mode-tab" id="attModeMonth" data-att-mode="month">Month</button>
+          </div>
+          <label class="att-hours-setting" title="Default hours when marking Present">
+            Day
+            <input type="number" id="attDefaultHours" min="0.5" max="24" step="0.5" value="8" aria-label="Default hours per day" />
+            h
+          </label>
           <input type="search" class="att-search" id="attSearch" placeholder="Filter people…" aria-label="Filter employees" />
           <select class="att-select" id="attTypeFilter" aria-label="Filter by type">
             <option value="all">All types</option>
+            <option value="present">Present</option>
             <option value="vacation">Vacation</option>
             <option value="sick">Sick</option>
             <option value="absent">Absent</option>
             <option value="holiday">Holiday</option>
           </select>
-          <select class="att-select" id="attWeekendFilter" aria-label="Show weekends">
+          <select class="att-select" id="attWeekendFilter" aria-label="Show weekends" hidden>
             <option value="hide">Weekdays only</option>
             <option value="show">Include weekends</option>
           </select>
@@ -1374,7 +1594,7 @@
 
       <div class="att-brush-bar" id="attBrushBar" role="toolbar" aria-label="Attendance brush"></div>
       <div class="att-stats" id="attStats"></div>
-      <p class="att-hint">Select a brush, then click days to paint (drag across a row). Click the same type again to clear. Click a <kbd>day header</kbd> to paint the whole team — handy for holidays. Keys <kbd>1</kbd>–<kbd>4</kbd> switch brushes.</p>
+      <p class="att-hint" id="attHint">Present brush paints a full day (default 8h). Click the hours to change (e.g. 4 for half day). Weekly total target is usually 40h.</p>
 
       <section class="card">
         <div class="card-header">
@@ -1384,10 +1604,13 @@
             </div>
             <div>
               <h2>Team attendance</h2>
-              <div class="card-sub">Yellow vacation · Red sick · Gray absent · Green holiday</div>
+              <div class="card-sub">Blue present · Yellow vacation · Red sick · Gray absent · Green holiday</div>
             </div>
           </div>
-          <span class="pill" id="attMonthPill">—</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn-secondary" id="btnFillWeekPresent" title="Mark all weekdays Present for everyone">Fill week · 8h</button>
+            <span class="pill" id="attMonthPill">—</span>
+          </div>
         </div>
         <div class="card-body" style="padding:12px">
           <div class="att-grid-wrap" id="attGrid"></div>
@@ -1418,12 +1641,13 @@
       Ilya: "#6366F1",
     };
     const ATT_TYPES = {
-      vacation: { label: "Vacation", short: "V", colorVar: "--att-vacation" },
-      sick: { label: "Sick", short: "S", colorVar: "--att-sick" },
-      absent: { label: "Absent", short: "A", colorVar: "--att-absent" },
-      holiday: { label: "Holiday", short: "H", colorVar: "--att-holiday" },
+      present: { label: "Present", short: "P", colorVar: "--att-present", countsHours: true },
+      vacation: { label: "Vacation", short: "V", colorVar: "--att-vacation", countsHours: false },
+      sick: { label: "Sick", short: "S", colorVar: "--att-sick", countsHours: false },
+      absent: { label: "Absent", short: "A", colorVar: "--att-absent", countsHours: false },
+      holiday: { label: "Holiday", short: "H", colorVar: "--att-holiday", countsHours: false },
     };
-    const ATT_TYPE_ORDER = ["vacation", "sick", "absent", "holiday"];
+    const ATT_TYPE_ORDER = ["present", "vacation", "sick", "absent", "holiday"];
     const ATT_EMPLOYEES = [
       { id: "kavita", name: "Kavita Ramgahan", color: "#F472B6" },
       { id: "arsen", name: "Arsen Savenko", color: "#8B5CF6" },
@@ -1433,6 +1657,8 @@
       { id: "ilia", name: "Ilia Loginov", color: "#6366F1" },
     ];
     const DOW_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const DEFAULT_DAY_HOURS = 8;
+    const TARGET_WEEK_HOURS = 40;
     const STAT_ICONS = {
       people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
       max: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
@@ -1457,7 +1683,8 @@
     let cloudSaveTimer = null;
     let applyingRemote = false;
     let currentView = "points";
-    let attBrush = "vacation";
+    let attBrush = "present";
+    let attMode = "week";
     let attTypeFilter = "all";
     let attSearch = "";
     let showWeekends = false;
@@ -1662,17 +1889,55 @@
         currentWeek,
         currentView: "points",
         attendanceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+        attendanceWeek: currentWeek,
         weeks: { [currentWeek]: { participants: defaultParticipants() } },
         attendance: {
           employees: ATT_EMPLOYEES.map((e) => ({ ...e })),
           months: {},
+          defaultDayHours: DEFAULT_DAY_HOURS,
+          targetWeekHours: TARGET_WEEK_HOURS,
         },
       };
     }
 
+    function getDefaultDayHours() {
+      ensureAttendance();
+      const n = Number(store.attendance.defaultDayHours);
+      return Number.isFinite(n) && n > 0 ? n : DEFAULT_DAY_HOURS;
+    }
+
+    function getTargetWeekHours() {
+      ensureAttendance();
+      const n = Number(store.attendance.targetWeekHours);
+      return Number.isFinite(n) && n > 0 ? n : TARGET_WEEK_HOURS;
+    }
+
+    function makeAttEntry(type, hours) {
+      if (!type || !ATT_TYPES[type]) return null;
+      const counts = ATT_TYPES[type].countsHours;
+      const h = counts
+        ? Math.max(0, Math.round((Number(hours) || getDefaultDayHours()) * 2) / 2)
+        : 0;
+      return { type, hours: h };
+    }
+
+    function normalizeAttEntry(raw) {
+      if (!raw) return null;
+      if (typeof raw === "string") return makeAttEntry(raw, raw === "present" ? getDefaultDayHours() : 0);
+      if (typeof raw === "object" && raw.type && ATT_TYPES[raw.type]) {
+        return makeAttEntry(raw.type, raw.hours);
+      }
+      return null;
+    }
+
     function ensureAttendance() {
       if (!store.attendance) {
-        store.attendance = { employees: ATT_EMPLOYEES.map((e) => ({ ...e })), months: {} };
+        store.attendance = {
+          employees: ATT_EMPLOYEES.map((e) => ({ ...e })),
+          months: {},
+          defaultDayHours: DEFAULT_DAY_HOURS,
+          targetWeekHours: TARGET_WEEK_HOURS,
+        };
       }
       if (!Array.isArray(store.attendance.employees) || !store.attendance.employees.length) {
         store.attendance.employees = ATT_EMPLOYEES.map((e) => ({ ...e }));
@@ -1680,7 +1945,12 @@
       if (!store.attendance.months || typeof store.attendance.months !== "object") {
         store.attendance.months = {};
       }
-      // Keep roster in sync with the fixed team list (ids/names), preserve colors if customized
+      if (!Number.isFinite(Number(store.attendance.defaultDayHours))) {
+        store.attendance.defaultDayHours = DEFAULT_DAY_HOURS;
+      }
+      if (!Number.isFinite(Number(store.attendance.targetWeekHours))) {
+        store.attendance.targetWeekHours = TARGET_WEEK_HOURS;
+      }
       const byId = Object.fromEntries(store.attendance.employees.map((e) => [e.id, e]));
       store.attendance.employees = ATT_EMPLOYEES.map((def) => ({
         id: def.id,
@@ -1691,6 +1961,9 @@
         const now = new Date();
         store.attendanceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       }
+      if (!store.attendanceWeek) store.attendanceWeek = getISOWeekKey();
+      if (!store.attMode) store.attMode = "week";
+      attMode = store.attMode === "month" ? "month" : "week";
     }
 
     function ensureWeek(key) {
@@ -1725,10 +1998,13 @@
           currentWeek,
           currentView: "points",
           attendanceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+          attendanceWeek: currentWeek,
           weeks: { [currentWeek]: { participants: cloneParticipants(parsed.participants) } },
           attendance: {
             employees: ATT_EMPLOYEES.map((e) => ({ ...e })),
             months: {},
+            defaultDayHours: DEFAULT_DAY_HOURS,
+            targetWeekHours: TARGET_WEEK_HOURS,
           },
         };
       } catch (_) {
@@ -2449,37 +2725,102 @@
       return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
     }
 
-    function getAttMonthData() {
+    function localDateFromUtcMonday(mondayUtc, offsetDays = 0) {
+      return new Date(mondayUtc.getUTCFullYear(), mondayUtc.getUTCMonth(), mondayUtc.getUTCDate() + offsetDays);
+    }
+
+    function getAttWeekDates(weekKey = store.attendanceWeek) {
+      const monday = getMondayOfWeek(weekKey);
+      return [0, 1, 2, 3, 4].map((i) => localDateFromUtcMonday(monday, i));
+    }
+
+    function ensureMonthBucket(monthKey) {
       ensureAttendance();
-      const key = store.attendanceMonth;
-      if (!store.attendance.months[key]) store.attendance.months[key] = {};
-      return store.attendance.months[key];
+      if (!store.attendance.months[monthKey]) store.attendance.months[monthKey] = {};
+      return store.attendance.months[monthKey];
+    }
+
+    function getCellByDate(empId, date) {
+      const monthKey = getMonthKey(date);
+      const raw = store.attendance.months?.[monthKey]?.[empId]?.[String(date.getDate())];
+      return normalizeAttEntry(raw);
+    }
+
+    function setCellByDate(empId, date, entry) {
+      const monthKey = getMonthKey(date);
+      const month = ensureMonthBucket(monthKey);
+      if (!month[empId]) month[empId] = {};
+      const dayKey = String(date.getDate());
+      const normalized = normalizeAttEntry(entry);
+      if (!normalized) delete month[empId][dayKey];
+      else month[empId][dayKey] = normalized;
+      if (month[empId] && !Object.keys(month[empId]).length) delete month[empId];
     }
 
     function getCellType(empId, day) {
-      return getAttMonthData()?.[empId]?.[String(day)] || null;
+      const { year, month } = parseMonthKey(store.attendanceMonth);
+      return getCellByDate(empId, new Date(year, month - 1, day))?.type || null;
     }
 
-    function setCellType(empId, day, type) {
-      const month = getAttMonthData();
-      if (!month[empId]) month[empId] = {};
-      if (!type) delete month[empId][String(day)];
-      else month[empId][String(day)] = type;
-      if (month[empId] && !Object.keys(month[empId]).length) delete month[empId];
+    function getCellEntryForMonthDay(empId, day) {
+      const { year, month } = parseMonthKey(store.attendanceMonth);
+      return getCellByDate(empId, new Date(year, month - 1, day));
+    }
+
+    function setCellType(empId, day, typeOrEntry) {
+      const { year, month } = parseMonthKey(store.attendanceMonth);
+      const date = new Date(year, month - 1, day);
+      if (!typeOrEntry) setCellByDate(empId, date, null);
+      else if (typeof typeOrEntry === "string") setCellByDate(empId, date, makeAttEntry(typeOrEntry));
+      else setCellByDate(empId, date, typeOrEntry);
+    }
+
+    function weekHoursForEmp(empId, weekKey = store.attendanceWeek) {
+      return getAttWeekDates(weekKey).reduce((sum, date) => {
+        const entry = getCellByDate(empId, date);
+        return sum + (entry && ATT_TYPES[entry.type]?.countsHours ? (Number(entry.hours) || 0) : 0);
+      }, 0);
     }
 
     function countAttTypes(employees = null) {
       ensureAttendance();
-      const month = getAttMonthData();
-      const counts = { vacation: 0, sick: 0, absent: 0, holiday: 0 };
+      const counts = { present: 0, vacation: 0, sick: 0, absent: 0, holiday: 0 };
       const list = employees || store.attendance.employees;
+      if (attMode === "week") {
+        for (const emp of list) {
+          for (const date of getAttWeekDates()) {
+            const entry = getCellByDate(emp.id, date);
+            if (entry && counts[entry.type] != null) counts[entry.type]++;
+          }
+        }
+        return counts;
+      }
+      const month = ensureMonthBucket(store.attendanceMonth);
       for (const emp of list) {
         const days = month[emp.id] || {};
-        for (const type of Object.values(days)) {
-          if (counts[type] != null) counts[type]++;
+        for (const raw of Object.values(days)) {
+          const entry = normalizeAttEntry(raw);
+          if (entry && counts[entry.type] != null) counts[entry.type]++;
         }
       }
       return counts;
+    }
+
+    function sumPresentHours(employees = null) {
+      const list = employees || filteredAttEmployees();
+      if (attMode === "week") {
+        return list.reduce((sum, emp) => sum + weekHoursForEmp(emp.id), 0);
+      }
+      ensureAttendance();
+      const month = ensureMonthBucket(store.attendanceMonth);
+      let total = 0;
+      for (const emp of list) {
+        for (const raw of Object.values(month[emp.id] || {})) {
+          const entry = normalizeAttEntry(raw);
+          if (entry && ATT_TYPES[entry.type]?.countsHours) total += Number(entry.hours) || 0;
+        }
+      }
+      return total;
     }
 
     function filteredAttEmployees() {
@@ -2488,8 +2829,18 @@
       return store.attendance.employees.filter((e) => !q || e.name.toLowerCase().includes(q));
     }
 
-    function cssAttColor(type) {
-      return getComputedStyle(document.documentElement).getPropertyValue(ATT_TYPES[type].colorVar).trim();
+    function setAttMode(mode, persist = true) {
+      attMode = mode === "month" ? "month" : "week";
+      store.attMode = attMode;
+      document.getElementById("attModeWeek").classList.toggle("active", attMode === "week");
+      document.getElementById("attModeMonth").classList.toggle("active", attMode === "month");
+      document.getElementById("attWeekendFilter").hidden = attMode !== "month";
+      document.getElementById("btnFillWeekPresent").hidden = attMode !== "week";
+      document.getElementById("attHint").innerHTML = attMode === "week"
+        ? `Present brush paints a full day (default <strong>${getDefaultDayHours()}h</strong>). Click the hours to change (e.g. 4 for half day). Weekly total target is usually <strong>${getTargetWeekHours()}h</strong>.`
+        : `Select a brush, then click days to paint. Present shows hours. Click a <kbd>day header</kbd> to paint the whole team. Keys <kbd>1</kbd>–<kbd>5</kbd> switch brushes.`;
+      if (persist) saveStore();
+      renderAttendance();
     }
 
     function setView(view, persist = true) {
@@ -2506,9 +2857,11 @@
       const brandSub = document.querySelector(".brand-meta p");
       const footer = document.getElementById("appFooter");
       if (currentView === "attendance") {
-        if (brandSub) brandSub.textContent = "Team attendance · color-coded days";
-        if (footer) footer.innerHTML = "Auto-saved to cloud when configured · paint days with the brush toolbar · keys 1–4";
-        renderAttendance();
+        if (brandSub) brandSub.textContent = "Team attendance · hours & leave";
+        if (footer) footer.innerHTML = "Auto-saved · Present defaults to 8h · weekly total usually 40h · keys 1–5";
+        const hoursInput = document.getElementById("attDefaultHours");
+        if (hoursInput) hoursInput.value = String(getDefaultDayHours());
+        setAttMode(attMode, false);
       } else {
         if (brandSub) brandSub.textContent = "Team scoreboard · Mon – Fri";
         if (footer) footer.innerHTML = "Auto-saved to cloud when configured · <code>←</code> <code>→</code> change weeks";
@@ -2525,7 +2878,7 @@
         ${ATT_TYPE_ORDER.map((type) => `
           <button type="button" class="att-brush ${attBrush === type ? "active" : ""}"
             data-brush="${type}" style="--brush-color:var(${ATT_TYPES[type].colorVar})"
-            title="${ATT_TYPES[type].label}">
+            title="${ATT_TYPES[type].label}${ATT_TYPES[type].countsHours ? ` · ${getDefaultDayHours()}h` : ""}">
             <span class="att-brush-swatch"></span>
             ${ATT_TYPES[type].label}
             <span class="att-brush-count">${counts[type]}</span>
@@ -2545,41 +2898,88 @@
     }
 
     function renderAttStats() {
-      const counts = countAttTypes(filteredAttEmployees());
-      document.getElementById("attStats").innerHTML = ATT_TYPE_ORDER.map((type) => `
-        <div class="att-stat" style="--att-color:var(${ATT_TYPES[type].colorVar})">
+      const employees = filteredAttEmployees();
+      const counts = countAttTypes(employees);
+      const hours = sumPresentHours(employees);
+      const target = getTargetWeekHours();
+      const weekLabel = attMode === "week" ? "Week hours" : "Month hours";
+      document.getElementById("attStats").innerHTML = `
+        <div class="att-stat" style="--att-color:var(--att-present)">
           <div class="att-stat-swatch"></div>
           <div>
-            <div class="att-stat-label">${ATT_TYPES[type].label}</div>
-            <div class="att-stat-value">${counts[type]}</div>
+            <div class="att-stat-label">${weekLabel}</div>
+            <div class="att-stat-value">${formatHours(hours)}${attMode === "week" ? `<span style="font-size:0.75rem;color:var(--muted);font-weight:700"> / ${target}</span>` : ""}</div>
           </div>
-        </div>`).join("");
+        </div>
+        <div class="att-stat" style="--att-color:var(--att-present)">
+          <div class="att-stat-swatch"></div>
+          <div>
+            <div class="att-stat-label">Present days</div>
+            <div class="att-stat-value">${counts.present}</div>
+          </div>
+        </div>
+        <div class="att-stat" style="--att-color:var(--att-vacation)">
+          <div class="att-stat-swatch"></div>
+          <div>
+            <div class="att-stat-label">Leave days</div>
+            <div class="att-stat-value">${counts.vacation + counts.sick + counts.absent + counts.holiday}</div>
+          </div>
+        </div>`;
     }
 
-    function paintAttCell(empId, day, forceValue = undefined) {
-      const current = getCellType(empId, day);
+    function formatHours(n) {
+      const v = Math.round((Number(n) || 0) * 2) / 2;
+      return Number.isInteger(v) ? String(v) : v.toFixed(1);
+    }
+
+    function paintAttEntry(empId, date, forceValue = undefined) {
+      const current = getCellByDate(empId, date);
       let next;
       if (forceValue !== undefined) {
         next = forceValue;
       } else if (attBrush === "clear") {
         next = null;
-      } else if (current === attBrush) {
+      } else if (current?.type === attBrush) {
         next = null;
       } else {
-        next = attBrush;
+        next = makeAttEntry(attBrush);
       }
-      setCellType(empId, day, next);
+      setCellByDate(empId, date, next);
       return next;
     }
 
-    function updateAttCellEl(td, type) {
+    function paintAttCell(empId, day, forceValue = undefined) {
+      const { year, month } = parseMonthKey(store.attendanceMonth);
+      const date = new Date(year, month - 1, day);
+      let forced = forceValue;
+      if (typeof forceValue === "string") forced = makeAttEntry(forceValue);
+      return paintAttEntry(empId, date, forced);
+    }
+
+    function cellMarkHtml(entry) {
+      if (!entry) return "";
+      if (entry.type === "present") {
+        return `<span class="att-cell-mark">${formatHours(entry.hours)}</span>`;
+      }
+      return `<span class="att-cell-mark">${ATT_TYPES[entry.type].short}</span>`;
+    }
+
+    function cellTitle(entry) {
+      if (!entry) return "Empty";
+      if (entry.type === "present") return `Present · ${formatHours(entry.hours)}h`;
+      return ATT_TYPES[entry.type].label;
+    }
+
+    function updateAttCellEl(td, entry) {
       if (!td) return;
-      if (type) {
-        td.dataset.type = type;
-        td.innerHTML = `<span class="att-cell-mark">${ATT_TYPES[type].short}</span>`;
-        td.title = ATT_TYPES[type].label;
+      if (entry) {
+        td.dataset.type = entry.type;
+        td.dataset.hours = String(entry.hours);
+        td.innerHTML = cellMarkHtml(entry);
+        td.title = cellTitle(entry);
       } else {
         delete td.dataset.type;
+        delete td.dataset.hours;
         td.innerHTML = "";
         td.title = "Empty";
       }
@@ -2587,15 +2987,206 @@
     }
 
     function applyAttTypeFilterDim() {
-      document.querySelectorAll("#attGrid .att-cell").forEach((td) => {
+      document.querySelectorAll("#attGrid .att-cell, #attGrid .att-week-cell").forEach((td) => {
         const type = td.dataset.type || "";
         const dim = attTypeFilter !== "all" && type !== attTypeFilter;
         td.classList.toggle("dimmed", dim);
       });
     }
 
+    function totalClass(hours) {
+      const target = getTargetWeekHours();
+      if (hours <= 0) return "att-total-zero";
+      if (hours >= target) return "att-total-ok";
+      return "att-total-low";
+    }
+
     function renderAttendance() {
       ensureAttendance();
+      renderAttBrushBar();
+      renderAttStats();
+      document.getElementById("attLegendFooter").innerHTML = ATT_TYPE_ORDER.map((type) => `
+        <span><span class="att-legend-dot" style="background:var(${ATT_TYPES[type].colorVar})"></span>
+        ${ATT_TYPES[type].label}${type === "present" ? ` (${getDefaultDayHours()}h)` : ` (${ATT_TYPES[type].short})`}</span>`).join("");
+
+      if (attMode === "week") renderAttWeek();
+      else renderAttMonth();
+    }
+
+    function renderAttWeek() {
+      const weekKey = store.attendanceWeek;
+      const dates = getAttWeekDates(weekKey);
+      const employees = filteredAttEmployees();
+      const isCurrent = weekKey === getISOWeekKey();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      document.getElementById("attPeriodLabel").innerHTML =
+        `Week ${weekKey.replace("-W", " · ")}` + (isCurrent ? '<span class="week-badge">live</span>' : "");
+      document.getElementById("attPeriodSublabel").textContent = formatWeekRange(weekKey);
+      document.getElementById("attMonthPill").textContent =
+        `${employees.length} people · target ${getTargetWeekHours()}h`;
+
+      if (!employees.length) {
+        document.getElementById("attGrid").innerHTML = `
+          <div class="empty-state"><h3>No employees match</h3><p>Try clearing the search filter.</p></div>`;
+        return;
+      }
+
+      const head = dates.map((date, i) => {
+        const isToday = date.getTime() === today.getTime();
+        return `<th class="${isToday ? "today-col" : ""}">
+          <span class="att-day-num">${DAYS[i]}</span>
+          <span class="att-day-dow">${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}</span>
+        </th>`;
+      }).join("");
+
+      const rows = employees.map((emp) => {
+        const total = weekHoursForEmp(emp.id, weekKey);
+        const cells = dates.map((date) => {
+          const entry = getCellByDate(emp.id, date);
+          const isToday = date.getTime() === today.getTime();
+          const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+          return `
+            <td>
+              <div class="att-week-cell ${isToday ? "today-col" : ""}"
+                data-emp="${emp.id}" data-date="${iso}"
+                ${entry ? `data-type="${entry.type}" data-hours="${entry.hours}"` : ""}
+                title="${cellTitle(entry)}">
+                <span class="att-week-type">${entry ? ATT_TYPES[entry.type].label : "—"}</span>
+                ${entry?.type === "present"
+                  ? `<input type="number" class="att-hours-input" min="0" max="24" step="0.5"
+                      value="${formatHours(entry.hours)}" data-emp="${emp.id}" data-date="${iso}"
+                      aria-label="${emp.name} hours" />`
+                  : entry
+                    ? `<span style="font-weight:800">${ATT_TYPES[entry.type].short}</span>`
+                    : `<span style="color:var(--muted);font-size:0.72rem">empty</span>`}
+              </div>
+            </td>`;
+        }).join("");
+
+        return `
+          <tr>
+            <td class="att-name-col">
+              <div class="att-emp">
+                <div class="avatar" style="background:${emp.color}">${initials(emp.name)}</div>
+                <div style="min-width:0">
+                  <div class="att-emp-name" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</div>
+                  <div class="att-row-totals">
+                    <span class="att-hours-chip">${formatHours(total)}h this week</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            ${cells}
+            <td class="att-total-col ${totalClass(total)}">${formatHours(total)}h</td>
+          </tr>`;
+      }).join("");
+
+      document.getElementById("attGrid").innerHTML = `
+        <div class="table-wrap">
+          <table class="att-week-table">
+            <thead>
+              <tr>
+                <th class="att-name-col">Employee</th>
+                ${head}
+                <th class="att-total-col">Total</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+
+      applyAttTypeFilterDim();
+      bindAttWeekEvents();
+    }
+
+    function bindAttWeekEvents() {
+      const grid = document.getElementById("attGrid");
+
+      grid.querySelectorAll(".att-week-cell").forEach((cell) => {
+        cell.addEventListener("mousedown", (e) => {
+          if (e.target.matches("input")) return;
+          if (e.button !== 0) return;
+          e.preventDefault();
+          const empId = cell.dataset.emp;
+          const date = parseIsoDate(cell.dataset.date);
+          const current = getCellByDate(empId, date);
+          let next;
+          if (attBrush === "clear") next = null;
+          else if (current?.type === attBrush) next = null;
+          else next = makeAttEntry(attBrush);
+          attPainting = true;
+          attPaintValue = next;
+          setCellByDate(empId, date, next);
+          saveStore();
+          renderAttendance();
+        });
+
+        cell.addEventListener("mouseenter", () => {
+          if (!attPainting) return;
+          const empId = cell.dataset.emp;
+          const date = parseIsoDate(cell.dataset.date);
+          setCellByDate(empId, date, attPaintValue);
+          // lightweight visual refresh of this cell
+          if (attPaintValue) {
+            cell.dataset.type = attPaintValue.type;
+            cell.dataset.hours = String(attPaintValue.hours);
+            cell.title = cellTitle(attPaintValue);
+            cell.querySelector(".att-week-type").textContent = ATT_TYPES[attPaintValue.type].label;
+            if (attPaintValue.type === "present") {
+              cell.innerHTML = `<span class="att-week-type">${ATT_TYPES.present.label}</span>
+                <input type="number" class="att-hours-input" min="0" max="24" step="0.5"
+                  value="${formatHours(attPaintValue.hours)}" data-emp="${empId}" data-date="${cell.dataset.date}" />`;
+            } else {
+              cell.innerHTML = `<span class="att-week-type">${ATT_TYPES[attPaintValue.type].label}</span>
+                <span style="font-weight:800">${ATT_TYPES[attPaintValue.type].short}</span>`;
+            }
+          } else {
+            delete cell.dataset.type;
+            delete cell.dataset.hours;
+            cell.title = "Empty";
+            cell.innerHTML = `<span class="att-week-type">—</span><span style="color:var(--muted);font-size:0.72rem">empty</span>`;
+          }
+        });
+      });
+
+      grid.querySelectorAll(".att-hours-input").forEach((input) => {
+        input.addEventListener("mousedown", (e) => e.stopPropagation());
+        input.addEventListener("click", (e) => e.stopPropagation());
+        input.addEventListener("input", (e) => {
+          const empId = e.target.dataset.emp;
+          const date = parseIsoDate(e.target.dataset.date);
+          const hours = Math.max(0, Math.min(24, Number(e.target.value) || 0));
+          setCellByDate(empId, date, makeAttEntry("present", hours));
+          saveStore();
+          const row = e.target.closest("tr");
+          const total = weekHoursForEmp(empId);
+          const totalCell = row?.querySelector(".att-total-col");
+          if (totalCell) {
+            totalCell.textContent = formatHours(total) + "h";
+            totalCell.className = "att-total-col " + totalClass(total);
+          }
+          const chip = row?.querySelector(".att-hours-chip");
+          if (chip) chip.textContent = `${formatHours(total)}h this week`;
+          renderAttBrushBar();
+          renderAttStats();
+        });
+        input.addEventListener("blur", (e) => {
+          const empId = e.target.dataset.emp;
+          const date = parseIsoDate(e.target.dataset.date);
+          const entry = getCellByDate(empId, date);
+          e.target.value = entry?.type === "present" ? formatHours(entry.hours) : formatHours(getDefaultDayHours());
+        });
+      });
+    }
+
+    function parseIsoDate(iso) {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function renderAttMonth() {
       const key = store.attendanceMonth;
       const { year, month } = parseMonthKey(key);
       const totalDays = daysInMonth(key);
@@ -2604,13 +3195,10 @@
       const employees = filteredAttEmployees();
       const isCurrentMonth = key === getMonthKey();
 
-      document.getElementById("monthLabel").innerHTML =
+      document.getElementById("attPeriodLabel").innerHTML =
         formatMonthLabel(key) + (isCurrentMonth ? '<span class="week-badge">live</span>' : "");
+      document.getElementById("attPeriodSublabel").textContent = "Month overview · Present shows hours";
       document.getElementById("attMonthPill").textContent = `${employees.length} people · ${totalDays} days`;
-      document.getElementById("btnNextMonth").disabled = false;
-
-      renderAttBrushBar();
-      renderAttStats();
 
       const dayCols = [];
       for (let d = 1; d <= totalDays; d++) {
@@ -2618,19 +3206,12 @@
         const dow = date.getDay();
         const weekend = dow === 0 || dow === 6;
         if (weekend && !showWeekends) continue;
-        dayCols.push({ day: d, dow, weekend, isToday: d === todayDay });
+        dayCols.push({ day: d, dow, weekend, isToday: d === todayDay, date });
       }
-
-      document.getElementById("attLegendFooter").innerHTML = ATT_TYPE_ORDER.map((type) => `
-        <span><span class="att-legend-dot" style="background:var(${ATT_TYPES[type].colorVar})"></span>
-        ${ATT_TYPES[type].label} (${ATT_TYPES[type].short})</span>`).join("");
 
       if (!employees.length) {
         document.getElementById("attGrid").innerHTML = `
-          <div class="empty-state">
-            <h3>No employees match</h3>
-            <p>Try clearing the search filter.</p>
-          </div>`;
+          <div class="empty-state"><h3>No employees match</h3><p>Try clearing the search filter.</p></div>`;
         return;
       }
 
@@ -2642,15 +3223,20 @@
         </th>`).join("");
 
       const rows = employees.map((emp) => {
-        const miniCounts = { vacation: 0, sick: 0, absent: 0, holiday: 0 };
-        const cells = dayCols.map(({ day, weekend, isToday }) => {
-          const type = getCellType(emp.id, day);
-          if (type) miniCounts[type]++;
+        const miniCounts = { present: 0, vacation: 0, sick: 0, absent: 0, holiday: 0 };
+        let monthHours = 0;
+        const cells = dayCols.map(({ day, weekend, isToday, date }) => {
+          const entry = getCellByDate(emp.id, date);
+          if (entry) {
+            miniCounts[entry.type]++;
+            if (ATT_TYPES[entry.type]?.countsHours) monthHours += Number(entry.hours) || 0;
+          }
           return `
             <td class="att-cell ${weekend ? "weekend" : ""} ${isToday ? "today-col" : ""}"
-              data-emp="${emp.id}" data-day="${day}" ${type ? `data-type="${type}"` : ""}
-              title="${type ? ATT_TYPES[type].label : "Empty"}">
-              ${type ? `<span class="att-cell-mark">${ATT_TYPES[type].short}</span>` : ""}
+              data-emp="${emp.id}" data-day="${day}"
+              ${entry ? `data-type="${entry.type}" data-hours="${entry.hours}"` : ""}
+              title="${cellTitle(entry)}">
+              ${cellMarkHtml(entry)}
             </td>`;
         }).join("");
 
@@ -2665,7 +3251,10 @@
                 <div class="avatar" style="background:${emp.color}">${initials(emp.name)}</div>
                 <div style="min-width:0">
                   <div class="att-emp-name" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</div>
-                  <div class="att-row-totals">${minis || '<span style="font-size:0.64rem;color:var(--muted)">—</span>'}</div>
+                  <div class="att-row-totals">
+                    ${minis}
+                    <span class="att-hours-chip">${formatHours(monthHours)}h</span>
+                  </div>
                 </div>
               </div>
             </td>
@@ -2685,35 +3274,33 @@
         </table>`;
 
       applyAttTypeFilterDim();
-      bindAttGridEvents();
+      bindAttMonthEvents();
 
       document.querySelectorAll("#attGrid [data-paint-day]").forEach((th) => {
         th.addEventListener("click", () => {
           const day = +th.dataset.paintDay;
-          const employees = filteredAttEmployees();
-          const next = attBrush === "clear" ? null : attBrush;
-          for (const emp of employees) paintAttCell(emp.id, day, next);
+          const next = attBrush === "clear" ? null : makeAttEntry(attBrush);
+          for (const emp of filteredAttEmployees()) paintAttCell(emp.id, day, next);
           saveStore();
           renderAttendance();
-          showToast(next ? `Column painted · ${ATT_TYPES[next].label}` : "Column cleared");
+          showToast(next ? `Column painted · ${ATT_TYPES[next.type].label}` : "Column cleared");
         });
       });
     }
 
-    function bindAttGridEvents() {
+    function bindAttMonthEvents() {
       const grid = document.getElementById("attGrid");
-
       grid.querySelectorAll(".att-cell").forEach((td) => {
         td.addEventListener("mousedown", (e) => {
           if (e.button !== 0) return;
           e.preventDefault();
           const empId = td.dataset.emp;
           const day = +td.dataset.day;
-          const current = getCellType(empId, day);
+          const current = getCellEntryForMonthDay(empId, day);
           let next;
           if (attBrush === "clear") next = null;
-          else if (current === attBrush) next = null;
-          else next = attBrush;
+          else if (current?.type === attBrush) next = null;
+          else next = makeAttEntry(attBrush);
           attPainting = true;
           attPaintValue = next;
           paintAttCell(empId, day, next);
@@ -2730,6 +3317,21 @@
           paintAttCell(empId, day, attPaintValue);
           updateAttCellEl(td, attPaintValue);
         });
+
+        td.addEventListener("dblclick", (e) => {
+          e.preventDefault();
+          const empId = td.dataset.emp;
+          const day = +td.dataset.day;
+          const entry = getCellEntryForMonthDay(empId, day);
+          if (!entry || entry.type !== "present") return;
+          const raw = prompt("Hours for this day", formatHours(entry.hours));
+          if (raw == null) return;
+          const hours = Math.max(0, Math.min(24, Number(raw) || 0));
+          const next = makeAttEntry("present", hours);
+          paintAttCell(empId, day, next);
+          saveStore();
+          renderAttendance();
+        });
       });
     }
 
@@ -2738,22 +3340,39 @@
       attPainting = false;
       attPaintValue = null;
       saveStore();
-      renderAttBrushBar();
-      renderAttStats();
-      // refresh row mini totals without full re-render when possible
       if (currentView === "attendance") renderAttendance();
     });
 
-    function changeMonth(delta) {
-      store.attendanceMonth = shiftMonthKey(store.attendanceMonth, delta);
+    function changeAttPeriod(delta) {
+      if (attMode === "week") {
+        store.attendanceWeek = shiftWeekKey(store.attendanceWeek, delta);
+        const monday = getMondayOfWeek(store.attendanceWeek);
+        store.attendanceMonth = getMonthKey(localDateFromUtcMonday(monday));
+      } else {
+        store.attendanceMonth = shiftMonthKey(store.attendanceMonth, delta);
+      }
       saveStore();
       renderAttendance();
     }
 
-    function goToCurrentMonth() {
+    function goToCurrentAttPeriod() {
+      store.attendanceWeek = getISOWeekKey();
       store.attendanceMonth = getMonthKey();
       saveStore();
       renderAttendance();
+    }
+
+    function fillWeekPresent() {
+      const hours = getDefaultDayHours();
+      if (!confirm(`Mark Mon–Fri as Present (${hours}h) for all visible employees this week?`)) return;
+      for (const emp of filteredAttEmployees()) {
+        for (const date of getAttWeekDates()) {
+          setCellByDate(emp.id, date, makeAttEntry("present", hours));
+        }
+      }
+      saveStore();
+      renderAttendance();
+      showToast(`Week filled · ${hours}h / day`);
     }
 
     function renderAll() {
@@ -2785,6 +3404,7 @@
 
       applyTheme(store.theme || "dark");
       currentView = store.currentView === "attendance" ? "attendance" : "points";
+      attMode = store.attMode === "month" ? "month" : "week";
       renderAll();
       initChart();
       setView(currentView, false);
@@ -2809,9 +3429,20 @@
 
       document.getElementById("tabPoints").addEventListener("click", () => setView("points"));
       document.getElementById("tabAttendance").addEventListener("click", () => setView("attendance"));
-      document.getElementById("btnPrevMonth").addEventListener("click", () => changeMonth(-1));
-      document.getElementById("btnNextMonth").addEventListener("click", () => changeMonth(1));
-      document.getElementById("btnCurrentMonth").addEventListener("click", goToCurrentMonth);
+      document.getElementById("btnPrevAttPeriod").addEventListener("click", () => changeAttPeriod(-1));
+      document.getElementById("btnNextAttPeriod").addEventListener("click", () => changeAttPeriod(1));
+      document.getElementById("btnCurrentAttPeriod").addEventListener("click", goToCurrentAttPeriod);
+      document.getElementById("btnFillWeekPresent").addEventListener("click", fillWeekPresent);
+      document.getElementById("attModeWeek").addEventListener("click", () => setAttMode("week"));
+      document.getElementById("attModeMonth").addEventListener("click", () => setAttMode("month"));
+      document.getElementById("attDefaultHours").addEventListener("change", (e) => {
+        const val = Math.max(0.5, Math.min(24, Number(e.target.value) || DEFAULT_DAY_HOURS));
+        store.attendance.defaultDayHours = Math.round(val * 2) / 2;
+        e.target.value = String(store.attendance.defaultDayHours);
+        saveStore();
+        renderAttBrushBar();
+        showToast(`Default day set to ${store.attendance.defaultDayHours}h`);
+      });
       document.getElementById("attSearch").addEventListener("input", (e) => {
         attSearch = e.target.value;
         renderAttendance();
@@ -2831,12 +3462,13 @@
           if (e.key === "ArrowLeft") changeWeek(-1);
           if (e.key === "ArrowRight") changeWeek(1);
         } else {
-          if (e.key === "ArrowLeft") changeMonth(-1);
-          if (e.key === "ArrowRight") changeMonth(1);
-          if (e.key === "1") { attBrush = "vacation"; renderAttBrushBar(); }
-          if (e.key === "2") { attBrush = "sick"; renderAttBrushBar(); }
-          if (e.key === "3") { attBrush = "absent"; renderAttBrushBar(); }
-          if (e.key === "4") { attBrush = "holiday"; renderAttBrushBar(); }
+          if (e.key === "ArrowLeft") changeAttPeriod(-1);
+          if (e.key === "ArrowRight") changeAttPeriod(1);
+          if (e.key === "1") { attBrush = "present"; renderAttBrushBar(); }
+          if (e.key === "2") { attBrush = "vacation"; renderAttBrushBar(); }
+          if (e.key === "3") { attBrush = "sick"; renderAttBrushBar(); }
+          if (e.key === "4") { attBrush = "absent"; renderAttBrushBar(); }
+          if (e.key === "5") { attBrush = "holiday"; renderAttBrushBar(); }
           if (e.key === "0" || e.key === "Escape") { attBrush = "clear"; renderAttBrushBar(); }
         }
       });

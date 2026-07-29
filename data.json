@@ -4,7 +4,9 @@
   "theme": "light",
   "currentWeek": "2026-W26",
   "currentView": "points",
+  "attMode": "week",
   "attendanceMonth": "2026-07",
+  "attendanceWeek": "2026-W26",
   "weeks": {
     "2026-W26": {
       "participants": [
@@ -50,6 +52,8 @@
       { "id": "andrii", "name": "Andrii Kornieienko", "color": "#22D3EE" },
       { "id": "ilia", "name": "Ilia Loginov", "color": "#6366F1" }
     ],
-    "months": {}
+    "months": {},
+    "defaultDayHours": 8,
+    "targetWeekHours": 40
   }
 }
