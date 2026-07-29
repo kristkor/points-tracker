@@ -1726,6 +1726,7 @@
             </div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn-secondary" id="btnExportAtt" title="Download attendance as Excel">Download Excel</button>
             <button class="btn-secondary" id="btnFillWeekPresent" title="Mark all weekdays Present for everyone">Fill week · 8h</button>
             <button class="btn-primary" id="btnAddAttPerson">+ Add person</button>
             <span class="pill" id="attMonthPill">—</span>
@@ -1744,6 +1745,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="config.js" onerror="window.APP_CONFIG=null"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script>
@@ -3671,6 +3673,169 @@
       showToast(`Week filled · ${hours}h / day`);
     }
 
+    function formatAttExportCell(entry) {
+      if (!entry) return "";
+      if (ATT_TYPES[entry.type]?.countsHours) {
+        return `${ATT_TYPES[entry.type].label} (${formatHours(entry.hours)}h)`;
+      }
+      return ATT_TYPES[entry.type].label;
+    }
+
+    function buildAttExportMatrix() {
+      ensureAttendance();
+      const employees = filteredAttEmployees();
+
+      if (attMode === "week") {
+        const dates = getAttWeekDates();
+        const header = [
+          "Employee",
+          ...dates.map((d, i) => `${DAYS[i]} ${d.getDate()} ${d.toLocaleDateString("en-US", { month: "short" })}`),
+          "Total hours",
+          "Present days",
+          "Sick days",
+          "Holiday days",
+          "Vacation days",
+          "Absent days",
+        ];
+        const rows = employees.map((emp) => {
+          const counts = { present: 0, sick: 0, holiday: 0, vacation: 0, absent: 0 };
+          const dayCells = dates.map((date) => {
+            const entry = getCellByDate(emp.id, date);
+            if (entry && counts[entry.type] != null) counts[entry.type]++;
+            return formatAttExportCell(entry);
+          });
+          return [
+            emp.name,
+            ...dayCells,
+            weekHoursForEmp(emp.id),
+            counts.present,
+            counts.sick,
+            counts.holiday,
+            counts.vacation,
+            counts.absent,
+          ];
+        });
+        return {
+          sheetName: "Week",
+          fileStem: `attendance-${store.attendanceWeek}`,
+          title: `Attendance week ${store.attendanceWeek}`,
+          subtitle: formatWeekRange(store.attendanceWeek),
+          header,
+          rows,
+        };
+      }
+
+      const key = store.attendanceMonth;
+      const { year, month } = parseMonthKey(key);
+      const totalDays = daysInMonth(key);
+      const dayCols = [];
+      for (let d = 1; d <= totalDays; d++) {
+        const date = new Date(year, month - 1, d);
+        const dow = date.getDay();
+        const weekend = dow === 0 || dow === 6;
+        if (weekend && !showWeekends) continue;
+        dayCols.push({ day: d, date, label: `${d} ${DOW_SHORT[dow]}` });
+      }
+
+      const header = [
+        "Employee",
+        ...dayCols.map((c) => c.label),
+        "Total hours",
+        "Present days",
+        "Sick days",
+        "Holiday days",
+        "Vacation days",
+        "Absent days",
+      ];
+      const rows = employees.map((emp) => {
+        const counts = { present: 0, sick: 0, holiday: 0, vacation: 0, absent: 0 };
+        let hours = 0;
+        const dayCells = dayCols.map(({ date }) => {
+          const entry = getCellByDate(emp.id, date);
+          if (entry) {
+            if (counts[entry.type] != null) counts[entry.type]++;
+            if (ATT_TYPES[entry.type]?.countsHours) hours += Number(entry.hours) || 0;
+          }
+          return formatAttExportCell(entry);
+        });
+        return [
+          emp.name,
+          ...dayCells,
+          Math.round(hours * 2) / 2,
+          counts.present,
+          counts.sick,
+          counts.holiday,
+          counts.vacation,
+          counts.absent,
+        ];
+      });
+
+      return {
+        sheetName: "Month",
+        fileStem: `attendance-${key}`,
+        title: `Attendance ${formatMonthLabel(key)}`,
+        subtitle: showWeekends ? "Including weekends" : "Weekdays only",
+        header,
+        rows,
+      };
+    }
+
+    function downloadBlob(filename, blob) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    }
+
+    function csvEscape(value) {
+      const s = String(value ?? "");
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+
+    function exportAttendanceCsv(matrix) {
+      const lines = [
+        [matrix.title],
+        [matrix.subtitle],
+        [],
+        matrix.header,
+        ...matrix.rows,
+      ].map((row) => row.map(csvEscape).join(",")).join("\r\n");
+      const blob = new Blob(["\uFEFF" + lines], { type: "text/csv;charset=utf-8" });
+      downloadBlob(`${matrix.fileStem}.csv`, blob);
+    }
+
+    function exportAttendanceExcel() {
+      const matrix = buildAttExportMatrix();
+      if (!matrix.rows.length) {
+        showToast("No people to export");
+        return;
+      }
+
+      if (window.XLSX) {
+        const aoa = [
+          [matrix.title],
+          [matrix.subtitle],
+          [],
+          matrix.header,
+          ...matrix.rows,
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws["!cols"] = matrix.header.map((h, i) => ({
+          wch: i === 0 ? 24 : Math.min(18, Math.max(10, String(h).length + 2)),
+        }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, matrix.sheetName);
+        XLSX.writeFile(wb, `${matrix.fileStem}.xlsx`);
+        showToast("Excel downloaded");
+        return;
+      }
+
+      exportAttendanceCsv(matrix);
+      showToast("CSV downloaded (Excel-compatible)");
+    }
+
     function renderAll() {
       renderWeekNav();
       renderStats();
@@ -3729,6 +3894,7 @@
       document.getElementById("btnNextAttPeriod").addEventListener("click", () => changeAttPeriod(1));
       document.getElementById("btnCurrentAttPeriod").addEventListener("click", goToCurrentAttPeriod);
       document.getElementById("btnFillWeekPresent").addEventListener("click", fillWeekPresent);
+      document.getElementById("btnExportAtt").addEventListener("click", exportAttendanceExcel);
       document.getElementById("btnAddAttPerson").addEventListener("click", addAttEmployee);
       document.getElementById("attModeWeek").addEventListener("click", () => setAttMode("week"));
       document.getElementById("attModeMonth").addEventListener("click", () => setAttMode("month"));
