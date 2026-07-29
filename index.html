@@ -1307,7 +1307,21 @@
     }
 
     .att-week-cell.today-col {
-      box-shadow: 0 0 0 2px var(--today-border);
+      box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+
+    .att-week-cell.today-col:not([data-type]) {
+      background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+    }
+
+    .att-week-table th.att-day.today-col {
+      color: var(--accent);
+      box-shadow: inset 0 -3px 0 var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+    }
+
+    .att-week-table th.att-day.today-col .att-day-num {
+      color: var(--accent);
     }
 
     .att-week-type {
@@ -1346,34 +1360,6 @@
       background: var(--surface-2);
       color: var(--text);
       border: 1px solid var(--border-strong);
-    }
-
-    .att-hours-setting {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.76rem;
-      font-weight: 700;
-      color: var(--muted);
-    }
-
-    .att-hours-setting input {
-      width: 48px;
-      font-family: inherit;
-      font-size: 0.82rem;
-      font-weight: 800;
-      color: var(--text);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 7px 6px;
-      text-align: center;
-    }
-
-    .att-hours-setting input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--focus-ring);
     }
 
     .att-stats {
@@ -1587,11 +1573,6 @@
             <button type="button" class="att-mode-tab active" id="attModeMonth" data-att-mode="month">Month</button>
             <button type="button" class="att-mode-tab" id="attModeWeek" data-att-mode="week">Week hours</button>
           </div>
-          <label class="att-hours-setting" title="Default hours when marking Present">
-            Day
-            <input type="number" id="attDefaultHours" min="0.5" max="24" step="0.5" value="8" aria-label="Default hours per day" />
-            h
-          </label>
           <input type="search" class="att-search" id="attSearch" placeholder="Filter people…" aria-label="Filter employees" />
           <select class="att-select" id="attTypeFilter" aria-label="Filter by type">
             <option value="all">All types</option>
@@ -1659,9 +1640,9 @@
     const ATT_TYPES = {
       present: { label: "Present", short: "P", colorVar: "--att-present", countsHours: true },
       vacation: { label: "Vacation", short: "V", colorVar: "--att-vacation", countsHours: false },
-      sick: { label: "Sick", short: "S", colorVar: "--att-sick", countsHours: false },
+      sick: { label: "Sick", short: "S", colorVar: "--att-sick", countsHours: true },
       absent: { label: "Absent", short: "A", colorVar: "--att-absent", countsHours: false },
-      holiday: { label: "Holiday", short: "H", colorVar: "--att-holiday", countsHours: false },
+      holiday: { label: "Holiday", short: "H", colorVar: "--att-holiday", countsHours: true },
     };
     const ATT_TYPE_ORDER = ["present", "vacation", "sick", "absent", "holiday"];
     const ATT_EMPLOYEES = [
@@ -1941,17 +1922,21 @@
 
     function brushEntry(type = attBrush) {
       if (!type || type === "clear") return null;
-      return makeAttEntry(type, type === "present" ? getDefaultDayHours() : undefined);
+      return makeAttEntry(type, ATT_TYPES[type]?.countsHours ? getDefaultDayHours() : undefined);
     }
 
     function normalizeAttEntry(raw) {
       if (!raw) return null;
       if (typeof raw === "string") {
-        return makeAttEntry(raw, raw === "present" ? getDefaultDayHours() : 0);
+        return makeAttEntry(raw, ATT_TYPES[raw]?.countsHours ? getDefaultDayHours() : 0);
       }
       if (typeof raw === "object" && raw.type && ATT_TYPES[raw.type]) {
-        if (raw.type === "present" && (raw.hours == null || raw.hours === "")) {
-          return makeAttEntry("present", getDefaultDayHours());
+        if (ATT_TYPES[raw.type].countsHours && (raw.hours == null || raw.hours === "")) {
+          return makeAttEntry(raw.type, getDefaultDayHours());
+        }
+        // Older sick/holiday entries stored 0h — treat as a full paid day
+        if ((raw.type === "sick" || raw.type === "holiday") && Number(raw.hours) === 0) {
+          return makeAttEntry(raw.type, getDefaultDayHours());
         }
         return makeAttEntry(raw.type, raw.hours);
       }
@@ -2871,8 +2856,8 @@
       document.getElementById("attWeekendFilter").hidden = attMode !== "month";
       document.getElementById("btnFillWeekPresent").hidden = attMode !== "week";
       document.getElementById("attHint").innerHTML = attMode === "week"
-        ? `Present brush paints a full day (default <strong>${getDefaultDayHours()}h</strong>). Click the hours to change (e.g. 4 for half day). Weekly total target is usually <strong>${getTargetWeekHours()}h</strong>.`
-        : `Select a brush, then click days to paint. Present shows hours. Click a <kbd>day header</kbd> to paint the whole team. Keys <kbd>1</kbd>–<kbd>5</kbd> switch brushes.`;
+        ? `Present, sick, and holiday count as <strong>8h</strong> toward the weekly total (usually <strong>${getTargetWeekHours()}h</strong>). Click hours to adjust. Today’s column is highlighted.`
+        : `Select a brush, then click days to paint. Present / sick / holiday = 8h. Click a <kbd>day header</kbd> to paint the whole team. Keys <kbd>1</kbd>–<kbd>5</kbd> switch brushes.`;
       if (persist) saveStore();
       renderAttendance();
     }
@@ -2892,9 +2877,7 @@
       const footer = document.getElementById("appFooter");
       if (currentView === "attendance") {
         if (brandSub) brandSub.textContent = "Team attendance · hours & leave";
-        if (footer) footer.innerHTML = "Auto-saved · Present defaults to 8h · weekly total usually 40h · keys 1–5";
-        const hoursInput = document.getElementById("attDefaultHours");
-        if (hoursInput) hoursInput.value = String(getDefaultDayHours());
+        if (footer) footer.innerHTML = "Auto-saved · Present / sick / holiday = 8h · weekly total usually 40h";
         setAttMode(attMode, false);
       } else {
         if (brandSub) brandSub.textContent = "Team scoreboard · Mon – Fri";
@@ -2995,12 +2978,17 @@
       if (entry.type === "present") {
         return `<span class="att-cell-mark">${formatHours(entry.hours)}</span>`;
       }
+      if (ATT_TYPES[entry.type]?.countsHours) {
+        return `<span class="att-cell-mark">${ATT_TYPES[entry.type].short}${formatHours(entry.hours)}</span>`;
+      }
       return `<span class="att-cell-mark">${ATT_TYPES[entry.type].short}</span>`;
     }
 
     function cellTitle(entry) {
       if (!entry) return "Empty";
-      if (entry.type === "present") return `Present · ${formatHours(entry.hours)}h`;
+      if (ATT_TYPES[entry.type]?.countsHours) {
+        return `${ATT_TYPES[entry.type].label} · ${formatHours(entry.hours)}h`;
+      }
       return ATT_TYPES[entry.type].label;
     }
 
@@ -3041,7 +3029,7 @@
       renderAttStats();
       document.getElementById("attLegendFooter").innerHTML = ATT_TYPE_ORDER.map((type) => `
         <span><span class="att-legend-dot" style="background:var(${ATT_TYPES[type].colorVar})"></span>
-        ${ATT_TYPES[type].label}${type === "present" ? ` (${getDefaultDayHours()}h)` : ` (${ATT_TYPES[type].short})`}</span>`).join("");
+        ${ATT_TYPES[type].label}${ATT_TYPES[type].countsHours ? " · 8h" : ` (${ATT_TYPES[type].short})`}</span>`).join("");
 
       if (attMode === "week") renderAttWeek();
       else renderAttMonth();
@@ -3088,10 +3076,10 @@
                 ${entry ? `data-type="${entry.type}" data-hours="${entry.hours}"` : ""}
                 title="${cellTitle(entry)}">
                 <span class="att-week-type">${entry ? ATT_TYPES[entry.type].label : "—"}</span>
-                ${entry?.type === "present"
+                ${entry && ATT_TYPES[entry.type]?.countsHours
                   ? `<input type="number" class="att-hours-input" min="0" max="24" step="0.5"
                       value="${formatHours(entry.hours)}" data-emp="${emp.id}" data-date="${iso}"
-                      aria-label="${emp.name} hours" />`
+                      aria-label="${emp.name} ${ATT_TYPES[entry.type].label} hours" />`
                   : entry
                     ? `<span style="font-weight:800">${ATT_TYPES[entry.type].short}</span>`
                     : `<span style="color:var(--muted);font-size:0.72rem">empty</span>`}
@@ -3167,9 +3155,8 @@
             cell.dataset.type = attPaintValue.type;
             cell.dataset.hours = String(attPaintValue.hours);
             cell.title = cellTitle(attPaintValue);
-            cell.querySelector(".att-week-type").textContent = ATT_TYPES[attPaintValue.type].label;
-            if (attPaintValue.type === "present") {
-              cell.innerHTML = `<span class="att-week-type">${ATT_TYPES.present.label}</span>
+            if (ATT_TYPES[attPaintValue.type]?.countsHours) {
+              cell.innerHTML = `<span class="att-week-type">${ATT_TYPES[attPaintValue.type].label}</span>
                 <input type="number" class="att-hours-input" min="0" max="24" step="0.5"
                   value="${formatHours(attPaintValue.hours)}" data-emp="${empId}" data-date="${cell.dataset.date}" />`;
             } else {
@@ -3191,8 +3178,10 @@
         input.addEventListener("input", (e) => {
           const empId = e.target.dataset.emp;
           const date = parseIsoDate(e.target.dataset.date);
+          const current = getCellByDate(empId, date);
+          const type = current?.type && ATT_TYPES[current.type]?.countsHours ? current.type : "present";
           const hours = Math.max(0, Math.min(24, Number(e.target.value) || 0));
-          setCellByDate(empId, date, makeAttEntry("present", hours));
+          setCellByDate(empId, date, makeAttEntry(type, hours));
           saveStore();
           const row = e.target.closest("tr");
           const total = weekHoursForEmp(empId);
@@ -3210,7 +3199,9 @@
           const empId = e.target.dataset.emp;
           const date = parseIsoDate(e.target.dataset.date);
           const entry = getCellByDate(empId, date);
-          e.target.value = entry?.type === "present" ? formatHours(entry.hours) : formatHours(getDefaultDayHours());
+          e.target.value = entry && ATT_TYPES[entry.type]?.countsHours
+            ? formatHours(entry.hours)
+            : formatHours(getDefaultDayHours());
         });
       });
     }
@@ -3357,11 +3348,11 @@
           const empId = td.dataset.emp;
           const day = +td.dataset.day;
           const entry = getCellEntryForMonthDay(empId, day);
-          if (!entry || entry.type !== "present") return;
-          const raw = prompt("Hours for this day", formatHours(entry.hours));
+          if (!entry || !ATT_TYPES[entry.type]?.countsHours) return;
+          const raw = prompt(`Hours for ${ATT_TYPES[entry.type].label}`, formatHours(entry.hours));
           if (raw == null) return;
           const hours = Math.max(0, Math.min(24, Number(raw) || 0));
-          const next = makeAttEntry("present", hours);
+          const next = makeAttEntry(entry.type, hours);
           paintAttCell(empId, day, next);
           saveStore();
           renderAttendance();
@@ -3469,14 +3460,6 @@
       document.getElementById("btnFillWeekPresent").addEventListener("click", fillWeekPresent);
       document.getElementById("attModeWeek").addEventListener("click", () => setAttMode("week"));
       document.getElementById("attModeMonth").addEventListener("click", () => setAttMode("month"));
-      document.getElementById("attDefaultHours").addEventListener("change", (e) => {
-        const val = Math.max(0.5, Math.min(24, Number(e.target.value) || DEFAULT_DAY_HOURS));
-        store.attendance.defaultDayHours = Math.round(val * 2) / 2;
-        e.target.value = String(store.attendance.defaultDayHours);
-        saveStore();
-        renderAttBrushBar();
-        showToast(`Default day set to ${store.attendance.defaultDayHours}h`);
-      });
       document.getElementById("attSearch").addEventListener("input", (e) => {
         attSearch = e.target.value;
         renderAttendance();
