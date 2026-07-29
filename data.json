@@ -4,7 +4,7 @@
   "theme": "light",
   "currentWeek": "2026-W26",
   "currentView": "points",
-  "attMode": "week",
+      "attMode": "month",
   "attendanceMonth": "2026-07",
   "attendanceWeek": "2026-W26",
   "weeks": {

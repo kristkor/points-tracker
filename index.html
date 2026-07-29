@@ -1076,7 +1076,7 @@
       font-size: 0.64rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      height: 44px;
+      height: 48px;
     }
 
     .att-table th.att-name-col,
@@ -1099,6 +1099,14 @@
       top: 0;
     }
 
+    .att-table th.att-day,
+    .att-table td.att-day {
+      width: 42px;
+      min-width: 42px;
+      max-width: 42px;
+      box-sizing: border-box;
+    }
+
     .att-table th.weekend,
     .att-table td.weekend {
       background: color-mix(in srgb, var(--muted) 6%, transparent);
@@ -1114,8 +1122,8 @@
       background: var(--today-bg);
     }
 
-    .att-day-num { display: block; font-size: 0.78rem; font-weight: 800; color: var(--text); }
-    .att-day-dow { display: block; font-size: 0.58rem; margin-top: 1px; }
+    .att-day-num { display: block; font-size: 0.78rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .att-day-dow { display: block; font-size: 0.58rem; margin-top: 2px; line-height: 1; }
 
     .att-emp {
       display: flex;
@@ -1139,9 +1147,10 @@
     }
 
     .att-cell {
-      width: 36px;
-      min-width: 36px;
-      height: 40px;
+      width: 42px;
+      min-width: 42px;
+      max-width: 42px;
+      height: 42px;
       cursor: pointer;
       position: relative;
       transition: transform 0.1s, filter 0.15s, opacity 0.2s;
@@ -1228,7 +1237,8 @@
     .att-week-table th.att-name-col,
     .att-week-table td.att-name-col {
       text-align: left;
-      width: 28%;
+      width: 220px;
+      min-width: 200px;
       padding-left: 12px;
       position: sticky;
       left: 0;
@@ -1239,12 +1249,18 @@
 
     .att-week-table thead th.att-name-col { background: var(--surface-2); z-index: 3; }
 
+    .att-week-table th.att-day,
+    .att-week-table td.att-day {
+      width: 14%;
+    }
+
     .att-week-table th.att-total-col,
     .att-week-table td.att-total-col {
       background: var(--total-col-bg);
       color: var(--total-col-text);
       font-weight: 800;
-      width: 12%;
+      width: 90px;
+      min-width: 90px;
     }
 
     .att-week-cell {
@@ -1568,8 +1584,8 @@
         </div>
         <div class="att-filters">
           <div class="att-mode-tabs" role="tablist" aria-label="Attendance mode">
-            <button type="button" class="att-mode-tab active" id="attModeWeek" data-att-mode="week">Week hours</button>
-            <button type="button" class="att-mode-tab" id="attModeMonth" data-att-mode="month">Month</button>
+            <button type="button" class="att-mode-tab active" id="attModeMonth" data-att-mode="month">Month</button>
+            <button type="button" class="att-mode-tab" id="attModeWeek" data-att-mode="week">Week hours</button>
           </div>
           <label class="att-hours-setting" title="Default hours when marking Present">
             Day
@@ -1684,7 +1700,7 @@
     let applyingRemote = false;
     let currentView = "points";
     let attBrush = "present";
-    let attMode = "week";
+    let attMode = "month";
     let attTypeFilter = "all";
     let attSearch = "";
     let showWeekends = false;
@@ -1888,6 +1904,7 @@
         theme: "dark",
         currentWeek,
         currentView: "points",
+        attMode: "month",
         attendanceMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
         attendanceWeek: currentWeek,
         weeks: { [currentWeek]: { participants: defaultParticipants() } },
@@ -1915,16 +1932,27 @@
     function makeAttEntry(type, hours) {
       if (!type || !ATT_TYPES[type]) return null;
       const counts = ATT_TYPES[type].countsHours;
-      const h = counts
-        ? Math.max(0, Math.round((Number(hours) || getDefaultDayHours()) * 2) / 2)
-        : 0;
+      if (!counts) return { type, hours: 0 };
+      const parsed = Number(hours);
+      const base = Number.isFinite(parsed) ? parsed : getDefaultDayHours();
+      const h = Math.max(0, Math.min(24, Math.round(base * 2) / 2));
       return { type, hours: h };
+    }
+
+    function brushEntry(type = attBrush) {
+      if (!type || type === "clear") return null;
+      return makeAttEntry(type, type === "present" ? getDefaultDayHours() : undefined);
     }
 
     function normalizeAttEntry(raw) {
       if (!raw) return null;
-      if (typeof raw === "string") return makeAttEntry(raw, raw === "present" ? getDefaultDayHours() : 0);
+      if (typeof raw === "string") {
+        return makeAttEntry(raw, raw === "present" ? getDefaultDayHours() : 0);
+      }
       if (typeof raw === "object" && raw.type && ATT_TYPES[raw.type]) {
+        if (raw.type === "present" && (raw.hours == null || raw.hours === "")) {
+          return makeAttEntry("present", getDefaultDayHours());
+        }
         return makeAttEntry(raw.type, raw.hours);
       }
       return null;
@@ -1945,10 +1973,10 @@
       if (!store.attendance.months || typeof store.attendance.months !== "object") {
         store.attendance.months = {};
       }
-      if (!Number.isFinite(Number(store.attendance.defaultDayHours))) {
+      if (!Number.isFinite(Number(store.attendance.defaultDayHours)) || Number(store.attendance.defaultDayHours) <= 0) {
         store.attendance.defaultDayHours = DEFAULT_DAY_HOURS;
       }
-      if (!Number.isFinite(Number(store.attendance.targetWeekHours))) {
+      if (!Number.isFinite(Number(store.attendance.targetWeekHours)) || Number(store.attendance.targetWeekHours) <= 0) {
         store.attendance.targetWeekHours = TARGET_WEEK_HOURS;
       }
       const byId = Object.fromEntries(store.attendance.employees.map((e) => [e.id, e]));
@@ -1962,8 +1990,14 @@
         store.attendanceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       }
       if (!store.attendanceWeek) store.attendanceWeek = getISOWeekKey();
-      if (!store.attMode) store.attMode = "week";
-      attMode = store.attMode === "month" ? "month" : "week";
+      // One-time switch back to month as the primary attendance view
+      if (!store._attMonthDefaulted) {
+        store.attMode = "month";
+        store.attendance.defaultDayHours = DEFAULT_DAY_HOURS;
+        store._attMonthDefaulted = true;
+      }
+      if (store.attMode !== "month" && store.attMode !== "week") store.attMode = "month";
+      attMode = store.attMode === "week" ? "week" : "month";
     }
 
     function ensureWeek(key) {
@@ -2942,7 +2976,7 @@
       } else if (current?.type === attBrush) {
         next = null;
       } else {
-        next = makeAttEntry(attBrush);
+        next = brushEntry(attBrush);
       }
       setCellByDate(empId, date, next);
       return next;
@@ -3035,7 +3069,7 @@
 
       const head = dates.map((date, i) => {
         const isToday = date.getTime() === today.getTime();
-        return `<th class="${isToday ? "today-col" : ""}">
+        return `<th class="att-day ${isToday ? "today-col" : ""}">
           <span class="att-day-num">${DAYS[i]}</span>
           <span class="att-day-dow">${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}</span>
         </th>`;
@@ -3048,7 +3082,7 @@
           const isToday = date.getTime() === today.getTime();
           const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
           return `
-            <td>
+            <td class="att-day">
               <div class="att-week-cell ${isToday ? "today-col" : ""}"
                 data-emp="${emp.id}" data-date="${iso}"
                 ${entry ? `data-type="${entry.type}" data-hours="${entry.hours}"` : ""}
@@ -3115,7 +3149,7 @@
           let next;
           if (attBrush === "clear") next = null;
           else if (current?.type === attBrush) next = null;
-          else next = makeAttEntry(attBrush);
+          else next = brushEntry(attBrush);
           attPainting = true;
           attPaintValue = next;
           setCellByDate(empId, date, next);
@@ -3216,7 +3250,7 @@
       }
 
       const head = dayCols.map(({ day, dow, weekend, isToday }) => `
-        <th class="${weekend ? "weekend" : ""} ${isToday ? "today-col" : ""}" style="width:36px;min-width:36px;cursor:pointer"
+        <th class="att-day ${weekend ? "weekend" : ""} ${isToday ? "today-col" : ""}" style="cursor:pointer"
           data-paint-day="${day}" title="Paint entire column">
           <span class="att-day-num">${day}</span>
           <span class="att-day-dow">${DOW_SHORT[dow]}</span>
@@ -3232,7 +3266,7 @@
             if (ATT_TYPES[entry.type]?.countsHours) monthHours += Number(entry.hours) || 0;
           }
           return `
-            <td class="att-cell ${weekend ? "weekend" : ""} ${isToday ? "today-col" : ""}"
+            <td class="att-cell att-day ${weekend ? "weekend" : ""} ${isToday ? "today-col" : ""}"
               data-emp="${emp.id}" data-day="${day}"
               ${entry ? `data-type="${entry.type}" data-hours="${entry.hours}"` : ""}
               title="${cellTitle(entry)}">
@@ -3279,7 +3313,7 @@
       document.querySelectorAll("#attGrid [data-paint-day]").forEach((th) => {
         th.addEventListener("click", () => {
           const day = +th.dataset.paintDay;
-          const next = attBrush === "clear" ? null : makeAttEntry(attBrush);
+          const next = attBrush === "clear" ? null : brushEntry(attBrush);
           for (const emp of filteredAttEmployees()) paintAttCell(emp.id, day, next);
           saveStore();
           renderAttendance();
@@ -3300,7 +3334,7 @@
           let next;
           if (attBrush === "clear") next = null;
           else if (current?.type === attBrush) next = null;
-          else next = makeAttEntry(attBrush);
+          else next = brushEntry(attBrush);
           attPainting = true;
           attPaintValue = next;
           paintAttCell(empId, day, next);
@@ -3404,7 +3438,7 @@
 
       applyTheme(store.theme || "dark");
       currentView = store.currentView === "attendance" ? "attendance" : "points";
-      attMode = store.attMode === "month" ? "month" : "week";
+      attMode = store.attMode === "week" ? "week" : "month";
       renderAll();
       initChart();
       setView(currentView, false);
